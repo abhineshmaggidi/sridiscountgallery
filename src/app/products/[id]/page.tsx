@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Heart, ChevronLeft, ChevronRight, Share2, ShoppingBag, ArrowRight } from 'lucide-react';
+import { Heart, ChevronLeft, ChevronRight, Share2, ArrowRight } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { Product } from '@/types';
@@ -14,7 +14,7 @@ export default function ProductDetail() {
   const params = useParams();
   const { id } = params as { id: string };
   const { addItem, clearCart } = useCart();
-  const { user, toggleLogin } = useAuth();
+  const { user } = useAuth();
   const [product, setProduct] = useState<Product | null>(null);
   const [currentImg, setCurrentImg] = useState(0);
 

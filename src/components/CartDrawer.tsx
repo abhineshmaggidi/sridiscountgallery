@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Minus, Plus, ShoppingCart } from 'lucide-react';
+import { X, ShoppingCart } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 

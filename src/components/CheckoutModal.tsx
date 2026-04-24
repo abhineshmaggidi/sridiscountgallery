@@ -8,7 +8,7 @@ import { Address, CheckoutStep } from '@/types';
 
 interface CheckoutModalProps { isOpen: boolean; onClose: () => void; }
 
-const DELIVERY_PER_ITEM = 99;
+const CONFIRMATION_PER_ITEM = 99;
 const UPI_ID = '9259595943-2@ybl';
 
 export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
@@ -34,8 +34,8 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
   if (!isOpen) return null;
 
   const totalItems = items.reduce((s, i) => s + i.qty, 0);
-  const deliveryCharge = totalItems * DELIVERY_PER_ITEM;
-  const grandTotal = subtotal + deliveryCharge;
+  const confirmationCharge = totalItems * CONFIRMATION_PER_ITEM;
+  const grandTotal = subtotal + confirmationCharge;
   const steps: { key: CheckoutStep; label: string; icon: React.ReactNode }[] = [
     { key: 'address', label: 'Address', icon: <MapPin className="w-3.5 h-3.5" /> },
     { key: 'payment', label: 'Payment', icon: <CreditCard className="w-3.5 h-3.5" /> },
@@ -61,7 +61,7 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
     const id = 'SDG-' + Date.now().toString(36).toUpperCase();
     setOrderId(id);
     setOrderAddress({ ...address });
-    addOrder({ id, items: [...items], address: { ...address }, total: subtotal, deliveryCharge, grandTotal, status: 'confirmed', date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }), paymentId: 'pay_' + Date.now().toString(36), paymentMethod: method, customerEmail: user?.email || '', customerName: user?.name || '' });
+    addOrder({ id, items: [...items], address: { ...address }, total: subtotal, confirmationCharge, grandTotal, status: 'confirmed', date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }), paymentId: 'pay_' + Date.now().toString(36), paymentMethod: method, customerEmail: user?.email || '', customerName: user?.name || '' });
     clearCart();
     setStep('confirmation');
   };
@@ -134,7 +134,7 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                 ))}
                 <div className="border-t border-gray-200 pt-2 space-y-1">
                   <div className="flex justify-between text-[12px]"><span className="text-gray-500">Subtotal</span><span className="font-mono">₹{subtotal.toLocaleString('en-IN')}</span></div>
-                  <div className="flex justify-between text-[12px]"><span className="text-gray-500">Delivery ({totalItems} × ₹99)</span><span className="font-mono">₹{deliveryCharge.toLocaleString('en-IN')}</span></div>
+                  <div className="flex justify-between text-[12px]"><span className="text-gray-500">Confirmation Charges ({totalItems} × ₹99)</span><span className="font-mono">₹{confirmationCharge.toLocaleString('en-IN')}</span></div>
                   <div className="border-t border-gray-200 pt-1.5 flex justify-between text-base font-bold"><span>Total</span><span className="font-mono text-[#1E3A8A]">₹{grandTotal.toLocaleString('en-IN')}</span></div>
                 </div>
               </div>

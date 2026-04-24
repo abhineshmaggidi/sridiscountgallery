@@ -1,24 +1,43 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, Suspense } from 'react';
 import { MapPin, CheckCircle, ArrowRight, Home, ShoppingBag, Loader2, CreditCard, AlertCircle, Banknote } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { Order } from '@/types';
-import { sanitizeString, sanitizeEmail, sanitizePhone, sanitizeName, sanitizeAddress, sanitizePincode } from '@/lib/security';
+import { sanitizeEmail, sanitizePhone, sanitizeName, sanitizeAddress, sanitizePincode } from '@/lib/security';
 
 const CONFIRMATION_PER_ITEM = 99;
 
-interface RazorpayResponse {
-  razorpay_payment_id: string;
-  razorpay_order_id: string;
-  razorpay_signature: string;
+interface RazorpayOptions {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  handler: (response: RazorpayResponse) => void;
+  prefill: {
+    name: string;
+    email: string;
+    contact: string;
+  };
+  theme: {
+    color: string;
+  };
+  modal: {
+    ondismiss: () => void;
+  };
+}
+
+interface RazorpayInstance {
+  open(): void;
 }
 
 declare global {
   interface Window {
-    Razorpay?: any;
+    Razorpay?: new (options: RazorpayOptions) => RazorpayInstance;
   }
 }
 
@@ -49,9 +68,8 @@ function isValidPincode(pincode: string) {
   return /^\d{6}$/.test(pincode);
 }
 
-export default function CheckoutPage() {
+function CheckoutPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { items, subtotal, clearCart } = useCart();
   const { user, addOrder } = useAuth();
 
@@ -68,7 +86,7 @@ export default function CheckoutPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [orderId, setOrderId] = useState('');
   const [paymentError, setPaymentError] = useState('');
-  const razorpayRef = useRef<any>(null);
+  const razorpayRef = useRef<RazorpayInstance | null>(null);
 
   const totalItems = items.reduce((s, i) => s + i.qty, 0);
   const confirmationCharge = totalItems * CONFIRMATION_PER_ITEM;
@@ -152,7 +170,7 @@ export default function CheckoutPage() {
         })
       });
 
-      let data: any = {};
+      let data: RazorpayOrderResponse | { error?: string } = {};
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
         data = await response.json();
@@ -195,9 +213,10 @@ export default function CheckoutPage() {
       const rzp = new window.Razorpay(options);
       razorpayRef.current = rzp;
       rzp.open();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Order error:', error);
-      setPaymentError(error.message || 'Failed to create payment order');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create payment order';
+      setPaymentError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -555,4 +574,14 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
+function CheckoutPageWrapper() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+      <CheckoutPage />
+    </Suspense>
+  );
+}
+
+export default CheckoutPageWrapper;
 

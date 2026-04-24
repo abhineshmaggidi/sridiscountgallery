@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRazorpayOrder } from '@/lib/razorpay';
 
+interface OrderRequestBody {
+  amount: number;
+  receipt: string;
+  customerEmail: string;
+  customerName: string;
+}
+
 // Rate limiting (simple in-memory store - for production use Redis/external service)
 const rateLimit = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
@@ -23,7 +30,7 @@ function checkRateLimit(ip: string): boolean {
   return true;
 }
 
-function validateOrderInput(body: any): { isValid: boolean; error?: string } {
+function validateOrderInput(body: OrderRequestBody): { isValid: boolean; error?: string } {
   const { amount, receipt, customerEmail, customerName } = body;
 
   if (!amount || typeof amount !== 'number' || amount <= 0 || amount > 1000000) {
@@ -118,8 +125,8 @@ export async function POST(request: NextRequest) {
       }
     });
 
-  } catch (error: any) {
-    const msg = error?.message || error?.description || error?.error || JSON.stringify(error);
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : JSON.stringify(error);
     console.error('Order creation error:', msg, error);
     return NextResponse.json({ 
       error: 'Failed to create payment order: ' + msg 

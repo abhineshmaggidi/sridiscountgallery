@@ -1,5 +1,29 @@
 import Razorpay from 'razorpay';
 
+interface RazorpayOrder {
+  id: string;
+  entity: string;
+  amount: number;
+  amount_paid: number;
+  amount_due: number;
+  currency: string;
+  receipt: string;
+  offer_id?: string;
+  status: string;
+  attempts: number;
+  notes: Record<string, string>;
+  created_at: number;
+}
+
+interface RazorpayError {
+  code?: string;
+  description?: string;
+  source?: string;
+  step?: string;
+  reason?: string;
+  metadata?: Record<string, unknown>;
+}
+
 declare global {
   var razorpay: Razorpay | undefined;
 }
@@ -23,7 +47,7 @@ export async function createRazorpayOrder(
   amount: number,
   currency: 'INR' = 'INR',
   receipt: string
-): Promise<any> {
+): Promise<RazorpayOrder> {
   const razorpay = getRazorpay();
   return new Promise((resolve, reject) => {
     const options = {
@@ -32,7 +56,7 @@ export async function createRazorpayOrder(
       receipt,
     };
 
-    razorpay.orders.create(options, (err: any, order: any) => {
+    razorpay.orders.create(options, (err: RazorpayError | null, order: RazorpayOrder | null) => {
       if (err) {
         // Normalize Razorpay error object to a proper Error with message
         let msg: string;
@@ -54,14 +78,13 @@ export async function createRazorpayOrder(
   });
 }
 
+import { createHmac } from 'crypto';
+
 export function verifySignature(
   payload: string,
   signature: string
 ): boolean {
-  const crypto = require('crypto');
-  const razorpay = getRazorpay();
-  const expectedSignature = crypto
-    .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
+  const expectedSignature = createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
     .update(payload)
     .digest('hex');
   return signature === expectedSignature;

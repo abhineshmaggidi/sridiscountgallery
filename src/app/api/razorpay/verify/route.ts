@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifySignature } from '@/lib/razorpay';
 import { createClient } from '@supabase/supabase-js';
 
+interface VerificationRequestBody {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+  orderId: string;
+}
+
 // Rate limiting
 const rateLimit = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
@@ -24,7 +31,7 @@ function checkRateLimit(ip: string): boolean {
   return true;
 }
 
-function validateVerificationInput(body: any): { isValid: boolean; error?: string } {
+function validateVerificationInput(body: VerificationRequestBody): { isValid: boolean; error?: string } {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderId } = body;
 
   if (!razorpay_order_id || typeof razorpay_order_id !== 'string' || razorpay_order_id.length !== 21) {
@@ -109,9 +116,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Verification error:', error);
-    return NextResponse.json({ error: 'Payment verification failed: ' + error.message }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Verification failed';
+    return NextResponse.json({ error: 'Payment verification failed: ' + errorMessage }, { status: 500 });
   }
 }
 
