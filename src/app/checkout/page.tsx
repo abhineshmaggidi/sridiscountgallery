@@ -10,6 +10,29 @@ import { sanitizeEmail, sanitizePhone, sanitizeName, sanitizeAddress, sanitizePi
 
 const CONFIRMATION_PER_ITEM = 99;
 
+interface RazorpayResponse {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
+
+interface RazorpayOrderResponse {
+  orderId: string;
+  amount: number;
+  currency: string;
+  key: string;
+  name: string;
+  description: string;
+  prefill: {
+    name: string;
+    email: string;
+    contact: string;
+  };
+  theme: {
+    color: string;
+  };
+}
+
 interface RazorpayOptions {
   key: string;
   amount: number;
@@ -181,8 +204,11 @@ function CheckoutPage() {
       }
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create order');
+        const err = 'error' in data ? data.error : undefined;
+        throw new Error(err || 'Failed to create order');
       }
+
+      const orderData = data as RazorpayOrderResponse;
 
       const loaded = await loadRazorpayScript();
       if (!loaded) {
@@ -190,12 +216,12 @@ function CheckoutPage() {
       }
 
       const options = {
-        key: data.key,
-        amount: data.amount,
-        currency: data.currency,
+        key: orderData.key,
+        amount: orderData.amount,
+        currency: orderData.currency,
         name: 'Sri Discount Gallery',
         description: `Order #${receipt}`,
-        order_id: data.orderId,
+        order_id: orderData.orderId,
         handler: (response: RazorpayResponse) => handleRazorpaySuccess(response, receipt),
         prefill: {
           name: guestInfo.name,
@@ -210,7 +236,7 @@ function CheckoutPage() {
         }
       };
 
-      const rzp = new window.Razorpay(options);
+      const rzp = new window.Razorpay!(options);
       razorpayRef.current = rzp;
       rzp.open();
     } catch (error: unknown) {

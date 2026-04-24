@@ -1,5 +1,6 @@
 import Razorpay from 'razorpay';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface RazorpayOrder {
   id: string;
   entity: string;
@@ -13,15 +14,6 @@ interface RazorpayOrder {
   attempts: number;
   notes: Record<string, string>;
   created_at: number;
-}
-
-interface RazorpayError {
-  code?: string;
-  description?: string;
-  source?: string;
-  step?: string;
-  reason?: string;
-  metadata?: Record<string, unknown>;
 }
 
 declare global {
@@ -56,7 +48,8 @@ export async function createRazorpayOrder(
       receipt,
     };
 
-    razorpay.orders.create(options, (err: RazorpayError | null, order: RazorpayOrder | null) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    razorpay.orders.create(options, (err: any, order: any) => {
       if (err) {
         // Normalize Razorpay error object to a proper Error with message
         let msg: string;
@@ -89,4 +82,3 @@ export function verifySignature(
     .digest('hex');
   return signature === expectedSignature;
 }
-
