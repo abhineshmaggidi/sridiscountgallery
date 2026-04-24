@@ -7,7 +7,7 @@ export const categories: Category[] = [
   { id: 'tools', name: 'Tools & Gadgets', emoji: '🛠️', count: 4 },
   { id: 'kids', name: 'Kids Products', emoji: '👶', count: 2 },
   { id: 'camera', name: 'Camera', emoji: '📷', count: 1 },
-  { id: 'earbuds', name: 'Earbuds / Accessories', emoji: '🎧', count: 3 },
+  { id: 'earbuds', name: 'Earbuds / Accessories', emoji: '🎧', count: 4 },
 ];
 
 export const products: Product[] = [
@@ -168,4 +168,6 @@ export const products: Product[] = [
     price: 1300, original: 2500, rating: 4.4, reviews: 678, badge: 'sale',
     specSheet: [['Type', 'Wireless Controller'], ['Connectivity', '2.4GHz Dongle'], ['Vibration', 'Dual Motor'], ['Compatible', 'PC, Android, PS3'], ['Battery', 'Rechargeable 600mAh']],
   },
+ 
 ];
+

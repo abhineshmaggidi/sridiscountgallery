@@ -3,6 +3,7 @@
 import { Search, ShoppingBag } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { ProfileButton } from '@/components/LoginModal';
+import SideMenu from './SideMenu';
 
 interface NavbarProps {
   searchQuery: string;
@@ -38,6 +39,7 @@ export default function Navbar({ searchQuery, onSearchChange }: NavbarProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          <SideMenu />
           <ProfileButton />
           <button
             type="button"
@@ -70,3 +72,4 @@ export default function Navbar({ searchQuery, onSearchChange }: NavbarProps) {
     </header>
   );
 }
+

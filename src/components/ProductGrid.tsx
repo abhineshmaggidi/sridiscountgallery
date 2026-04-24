@@ -8,7 +8,6 @@ interface ProductGridProps {
   filter: string;
   searchQuery: string;
   onFilterChange: (filter: string) => void;
-  onProductOpen: (product: Product) => void;
 }
 
 const filters = [
@@ -22,7 +21,7 @@ const filters = [
   { id: 'earbuds', label: '🎧 Earbuds' },
 ];
 
-export default function ProductGrid({ filter, searchQuery, onFilterChange, onProductOpen }: ProductGridProps) {
+export default function ProductGrid({ filter, searchQuery, onFilterChange }: ProductGridProps) {
   let filtered = filter === 'all' ? products : products.filter(p => p.category === filter);
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
@@ -36,7 +35,6 @@ export default function ProductGrid({ filter, searchQuery, onFilterChange, onPro
     <section className="px-3 md:px-12 py-6 md:py-8 pb-12 md:pb-20" id="products">
       <h2 className="text-lg md:text-3xl font-bold tracking-tight text-gray-900 mb-4 md:mb-8">Our Products</h2>
 
-      {/* Filters — horizontal scroll on mobile */}
       <div className="flex gap-2 mb-4 md:mb-7 overflow-x-auto pb-2 scrollbar-hide md:flex-wrap">
         {filters.map((f) => (
           <button type="button" key={f.id} onClick={() => onFilterChange(f.id)}
@@ -50,7 +48,7 @@ export default function ProductGrid({ filter, searchQuery, onFilterChange, onPro
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-4">
         {filtered.map((product) => (
-          <ProductCard key={product.id} product={product} onOpen={onProductOpen} />
+          <ProductCard key={product.id} product={product} />
         ))}
       </div>
 
@@ -63,3 +61,4 @@ export default function ProductGrid({ filter, searchQuery, onFilterChange, onPro
     </section>
   );
 }
+
