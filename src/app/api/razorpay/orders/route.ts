@@ -1,9 +1,72 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRazorpayOrder } from '@/lib/razorpay';
 
+// Rate limiting (simple in-memory store - for production use Redis/external service)
+const rateLimit = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX = 10; // 10 requests per minute
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const userLimit = rateLimit.get(ip);
+
+  if (!userLimit || now > userLimit.resetTime) {
+    rateLimit.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+
+  if (userLimit.count >= RATE_LIMIT_MAX) {
+    return false;
+  }
+
+  userLimit.count++;
+  return true;
+}
+
+function validateOrderInput(body: any): { isValid: boolean; error?: string } {
+  const { amount, receipt, customerEmail, customerName } = body;
+
+  if (!amount || typeof amount !== 'number' || amount <= 0 || amount > 1000000) {
+    return { isValid: false, error: 'Invalid amount' };
+  }
+
+  if (!receipt || typeof receipt !== 'string' || receipt.length > 100) {
+    return { isValid: false, error: 'Invalid receipt' };
+  }
+
+  if (!customerEmail || typeof customerEmail !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+    return { isValid: false, error: 'Invalid email' };
+  }
+
+  if (!customerName || typeof customerName !== 'string' || customerName.length < 2 || customerName.length > 100) {
+    return { isValid: false, error: 'Invalid customer name' };
+  }
+
+  return { isValid: true };
+}
+
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const clientIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    if (!checkRateLimit(clientIP)) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
+
+    // Input validation
+    const validation = validateOrderInput(body);
+    if (!validation.isValid) {
+      return NextResponse.json(
+        { error: validation.error },
+        { status: 400 }
+      );
+    }
+
     const { amount, receipt, customerEmail, customerName } = body;
 
     // Diagnostics: log env var presence (never log actual values)

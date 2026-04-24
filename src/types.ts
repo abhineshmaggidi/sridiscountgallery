@@ -41,7 +41,7 @@ export interface Order {
   items: CartItem[];
   address: Address;
   total: number;
-  deliveryCharge: number;
+  confirmationCharge: number;
   grandTotal: number;
   status: 'placed' | 'pending' | 'confirmed' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   date: string;

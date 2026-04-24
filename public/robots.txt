@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+# Block access to API routes
+Disallow: /api/
+
+# Block access to admin areas
+Disallow: /admin/
+
+# Block access to checkout (sensitive)
+Disallow: /checkout/
+
+# Allow access to sitemap
+Allow: /sitemap.xml

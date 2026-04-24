@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { Order } from '@/types';
+import { sanitizeString, sanitizeEmail, sanitizePhone, sanitizeName, sanitizeAddress, sanitizePincode } from '@/lib/security';
 
 const CONFIRMATION_PER_ITEM = 99;
 
@@ -293,7 +294,7 @@ export default function CheckoutPage() {
                 <label className="block text-sm font-bold text-gray-700 mb-2">Full Name *</label>
                 <input
                   value={guestInfo.name}
-                  onChange={(e) => setGuestInfo({...guestInfo, name: e.target.value})}
+                  onChange={(e) => setGuestInfo({...guestInfo, name: sanitizeName(e.target.value)})}
                   className="w-full px-5 py-4 rounded-2xl border-2 border-gray-200 focus:border-[#1E3A8A] focus:ring-4 focus:ring-[#1E3A8A]/10 outline-none text-lg"
                   placeholder="John Doe"
                 />
@@ -305,7 +306,7 @@ export default function CheckoutPage() {
                 <label className="block text-sm font-bold text-gray-700 mb-2">Phone *</label>
                 <input
                   value={guestInfo.phone}
-                  onChange={(e) => setGuestInfo({...guestInfo, phone: e.target.value})}
+                  onChange={(e) => setGuestInfo({...guestInfo, phone: sanitizePhone(e.target.value)})}
                   className="w-full px-5 py-4 rounded-2xl border-2 border-gray-200 focus:border-[#1E3A8A] focus:ring-4 focus:ring-[#1E3A8A]/10 outline-none text-lg"
                   placeholder="+91 98765 43210"
                 />
@@ -317,7 +318,7 @@ export default function CheckoutPage() {
                 <label className="block text-sm font-bold text-gray-700 mb-2">Email *</label>
                 <input
                   value={guestInfo.email}
-                  onChange={(e) => setGuestInfo({...guestInfo, email: e.target.value})}
+                  onChange={(e) => setGuestInfo({...guestInfo, email: sanitizeEmail(e.target.value)})}
                   type="email"
                   className="w-full px-5 py-4 rounded-2xl border-2 border-gray-200 focus:border-[#1E3A8A] focus:ring-4 focus:ring-[#1E3A8A]/10 outline-none text-lg"
                   placeholder="john@example.com"
@@ -358,7 +359,7 @@ export default function CheckoutPage() {
                   <label className="block text-lg font-bold text-gray-700 mb-3">Street Address *</label>
                   <input
                     value={guestInfo.street}
-                    onChange={(e) => setGuestInfo({...guestInfo, street: e.target.value})}
+                    onChange={(e) => setGuestInfo({...guestInfo, street: sanitizeAddress(e.target.value)})}
                     className="w-full px-5 py-4 rounded-2xl border-2 border-gray-200 focus:border-[#1E3A8A] focus:ring-4 focus:ring-[#1E3A8A]/10 outline-none text-lg"
                     placeholder="House, street, area, landmark"
                   />
@@ -370,7 +371,7 @@ export default function CheckoutPage() {
                   <label className="block text-lg font-bold text-gray-700 mb-3">City *</label>
                   <input
                     value={guestInfo.city}
-                    onChange={(e) => setGuestInfo({...guestInfo, city: e.target.value})}
+                    onChange={(e) => setGuestInfo({...guestInfo, city: sanitizeAddress(e.target.value)})}
                     className="w-full px-5 py-4 rounded-2xl border-2 border-gray-200 focus:border-[#1E3A8A] focus:ring-4 focus:ring-[#1E3A8A]/10 outline-none text-lg"
                     placeholder="Hyderabad"
                   />
@@ -379,7 +380,7 @@ export default function CheckoutPage() {
                   <label className="block text-lg font-bold text-gray-700 mb-3">State *</label>
                   <input
                     value={guestInfo.state}
-                    onChange={(e) => setGuestInfo({...guestInfo, state: e.target.value})}
+                    onChange={(e) => setGuestInfo({...guestInfo, state: sanitizeAddress(e.target.value)})}
                     className="w-full px-5 py-4 rounded-2xl border-2 border-gray-200 focus:border-[#1E3A8A] focus:ring-4 focus:ring-[#1E3A8A]/10 outline-none text-lg"
                     placeholder="Telangana"
                   />
@@ -391,7 +392,7 @@ export default function CheckoutPage() {
                   <label className="block text-lg font-bold text-gray-700 mb-3">Pincode *</label>
                   <input
                     value={guestInfo.pincode}
-                    onChange={(e) => setGuestInfo({...guestInfo, pincode: e.target.value})}
+                    onChange={(e) => setGuestInfo({...guestInfo, pincode: sanitizePincode(e.target.value)})}
                     className="w-full px-5 py-4 rounded-2xl border-2 border-gray-200 focus:border-[#1E3A8A] focus:ring-4 focus:ring-[#1E3A8A]/10 outline-none text-lg"
                     placeholder="500001"
                     maxLength={6}
@@ -545,7 +546,7 @@ export default function CheckoutPage() {
                 onClick={() => router.push('/profile/orders')}
                 className="flex-1 py-5 rounded-3xl border-2 border-gray-300 text-gray-800 font-bold text-lg shadow-lg hover:shadow-xl transition-all"
               >
-                <Truck className="w-5 h-5 inline mr-2" /> Track Order
+                <ShoppingBag className="w-5 h-5 inline mr-2" /> Track Order
               </button>
             </div>
           </div>
