@@ -19,7 +19,7 @@ export const products: Product[] = [
     brand: 'Sri Gallery', name: 'S40 Portable Projector',
     specs: 'Portable • LED • HD Ready',
     price: 3499, original: 8999, rating: 4.3, reviews: 542, badge: 'sale',
-    specSheet: [['Resolution', 'HD 720p'], ['Brightness', '3000 Lumens'], ['Connectivity', 'HDMI, USB, AV'], ['Speaker', 'Built-in'], ['Portable', 'Yes']],
+    specSheet: [['Resolution', '1080p'], ['Brightness', '3000 Lumens'], ['Connectivity', 'HDMI, USB, AV'], ['Speaker', 'Built-in'], ['Portable', 'Yes']],
   },
   {
     id: 2, category: 'projector', emoji: '🌌',
