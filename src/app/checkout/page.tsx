@@ -582,10 +582,18 @@ function CheckoutPage() {
               onClick={() => setPaymentMethod('razorpay')}
               className={`bg-white rounded-3xl shadow-lg border p-8 cursor-pointer transition-all ${paymentMethod === 'razorpay' ? 'border-[#1E3A8A] ring-2 ring-[#1E3A8A]/10' : ''}`}
             >
-              <h3 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-                <Wallet className="w-7 h-7 text-[#1E3A8A]" />
-                Pay Online (Full Amount)
-              </h3>
+              <div className="flex items-center gap-3 mb-2">
+                {/* Radio Button */}
+                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+                  paymentMethod === 'razorpay' ? 'border-[#1E3A8A] bg-blue-100' : 'border-gray-300 bg-gray-50'
+                }`}>
+                  {paymentMethod === 'razorpay' && <div className="w-3 h-3 rounded-full bg-[#1E3A8A]" />}
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <Wallet className="w-7 h-7 text-[#1E3A8A]" />
+                  Pay Online (Full Amount)
+                </h3>
+              </div>
               <p className="text-gray-500 text-sm mb-4">UPI, PhonePe, Google Pay, Paytm, Credit/Debit Cards, Netbanking</p>
               <div className="text-xs text-green-600 mb-6 font-medium">✓ No extra charges • Full payment now</div>
               <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
@@ -618,10 +626,18 @@ function CheckoutPage() {
               onClick={() => setPaymentMethod('cod')}
               className={`bg-white rounded-3xl shadow-lg border p-8 cursor-pointer transition-all ${paymentMethod === 'cod' ? 'border-green-400 ring-2 ring-green-100' : ''}`}
             >
-              <h3 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-                <Banknote className="w-7 h-7 text-green-600" />
-                Cash on Delivery
-              </h3>
+              <div className="flex items-center gap-3 mb-2">
+                {/* Radio Button */}
+                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+                  paymentMethod === 'cod' ? 'border-green-500 bg-green-100' : 'border-gray-300 bg-gray-50'
+                }`}>
+                  {paymentMethod === 'cod' && <div className="w-3 h-3 rounded-full bg-green-500" />}
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <Banknote className="w-7 h-7 text-green-600" />
+                  Cash on Delivery
+                </h3>
+              </div>
               <p className="text-gray-600 text-sm mb-4 font-medium">
                 Split payment: Pay ₹{pricing.convenienceFee} now + ₹{pricing.payOnDeliveryAmount.toLocaleString('en-IN')} in cash on delivery
               </p>
