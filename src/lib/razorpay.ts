@@ -1,7 +1,6 @@
 import { createHmac } from 'crypto';
 import Razorpay from 'razorpay';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface RazorpayOrder {
   id: string;
   entity: string;
@@ -76,7 +75,12 @@ export function verifySignature(
   payload: string,
   signature: string
 ): boolean {
-  const expectedSignature = createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
+  const secret = process.env.RAZORPAY_KEY_SECRET;
+  if (!secret) {
+    throw new Error('Razorpay secret key is not configured');
+  }
+
+  const expectedSignature = createHmac('sha256', secret)
     .update(payload)
     .digest('hex');
   return signature === expectedSignature;

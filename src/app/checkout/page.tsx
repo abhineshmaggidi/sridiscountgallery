@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, Suspense, useEffect } from 'react';
+import { useState, useRef, Suspense, useEffect, useMemo } from 'react';
 import {
   MapPin, CheckCircle, ArrowRight, Home, ShoppingBag,
   Loader2, AlertCircle, Banknote, Wallet, CreditCard
@@ -12,7 +12,7 @@ import { Order } from '@/types';
 import { calculatePricing } from '@/lib/pricing';
 import {
   sanitizeEmail, sanitizePhone, sanitizeName,
-  sanitizeAddress, sanitizePincode
+  sanitizeAddress, sanitizePincode, generateSecureId
 } from '@/lib/security';
 
 /* ─── Razorpay types ─── */
@@ -46,6 +46,8 @@ function loadRazorpayScript(): Promise<boolean> {
     if (window.Razorpay) { resolve(true); return; }
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.crossOrigin = 'anonymous';
     script.onload = () => resolve(true);
     script.onerror = () => resolve(false);
     document.body.appendChild(script);
@@ -82,12 +84,13 @@ function CheckoutPage() {
 
   // Pre-select COD if redirected from CheckoutModal
   useEffect(() => {
-    if (searchParams.get('payment') === 'cod') {
-      setPaymentMethod('cod');
+    const paymentParam = searchParams.get('payment');
+    if (paymentParam === 'cod' || paymentParam === 'razorpay') {
+      setPaymentMethod(paymentParam);
     }
   }, [searchParams]);
 
-  const pricing = calculatePricing(subtotal, paymentMethod);
+  const pricing = useMemo(() => calculatePricing(subtotal, paymentMethod), [subtotal, paymentMethod]);
   const isCOD = paymentMethod === 'cod';
 
   const steps = [
@@ -151,12 +154,8 @@ function CheckoutPage() {
     };
   };
 
-  const saveOrderLocally = (order: Order) => {
-    try { localStorage.setItem('sdg_last_order', JSON.stringify(order)); } catch { /* ignore */ }
-  };
   const finalizeOrder = async (order: Order) => {
     await addOrder(order);
-    saveOrderLocally(order);
     clearCart();
     setStep('confirmation');
   };
@@ -196,7 +195,7 @@ function CheckoutPage() {
     setIsLoading(true);
     setPaymentError('');
     try {
-      const receipt = 'SDG-' + Date.now().toString(36).toUpperCase();
+      const receipt = generateSecureId('SDG-');
       setOrderId(receipt);
 
       // Create order in DB first (pending_payment status)

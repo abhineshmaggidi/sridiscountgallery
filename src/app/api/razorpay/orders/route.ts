@@ -76,13 +76,6 @@ export async function POST(request: NextRequest) {
 
     const { amount, receipt, customerEmail, customerName } = body;
 
-    // Diagnostics: log env var presence (never log actual values)
-    console.log('[Razorpay Orders] Env check:', {
-      hasKeyId: !!process.env.RAZORPAY_KEY_ID,
-      hasKeySecret: !!process.env.RAZORPAY_KEY_SECRET,
-      hasNextPublicKeyId: !!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-    });
-
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
       return NextResponse.json(
         { error: 'Razorpay credentials missing on server. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env.local and restart the dev server.' },
