@@ -524,25 +524,36 @@ function CheckoutPage() {
                 </div>
 
                 <div className="border-t pt-4 flex justify-between text-2xl font-bold text-[#1E3A8A]">
-                  <span>Grand Total</span>
+                  <span>Total Amount Due</span>
                   <span className="font-mono">₹{pricing.grandTotal.toLocaleString('en-IN')}</span>
                 </div>
                 {isCOD && (
-                  <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-xl text-sm">
-                    <div className="font-semibold text-orange-800 mb-1">Payment Breakdown:</div>
-                    <div className="flex justify-between">
-                      <span>Pay now (online):</span>
-                      <span className="font-semibold">₹{pricing.payNowAmount}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Pay on delivery (cash):</span>
-                      <span className="font-semibold">₹{pricing.payOnDeliveryAmount.toLocaleString('en-IN')}</span>
+                  <div className="mt-4 p-4 bg-orange-50 border-2 border-orange-200 rounded-xl text-sm">
+                    <div className="font-semibold text-orange-800 mb-3">💰 COD Payment Breakdown:</div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="font-medium">1️⃣ Pay Online Now:</span>
+                        <span className="font-bold text-lg text-orange-700">₹{pricing.payNowAmount}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium">2️⃣ Pay on Delivery (Cash):</span>
+                        <span className="font-bold text-lg text-orange-700">₹{pricing.payOnDeliveryAmount.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="border-t border-orange-300 pt-2 flex justify-between font-bold">
+                        <span>Total to be paid:</span>
+                        <span className="text-lg">₹{pricing.grandTotal.toLocaleString('en-IN')}</span>
+                      </div>
                     </div>
                   </div>
                 )}
                 {!isCOD && (
-                  <div className="text-xs text-green-600 mt-2">
-                    ✓ Free delivery — pay ₹{pricing.payNowAmount.toLocaleString('en-IN')} online
+                  <div className="mt-4 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl text-sm">
+                    <div className="font-semibold text-blue-800 mb-2">💳 Direct Online Payment:</div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Pay Full Amount Now:</span>
+                      <span className="font-bold text-lg text-blue-700">₹{pricing.payNowAmount.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="text-xs text-green-600 mt-2 font-medium">✓ No extra charges</div>
                   </div>
                 )}
               </div>
@@ -573,10 +584,19 @@ function CheckoutPage() {
             >
               <h3 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
                 <Wallet className="w-7 h-7 text-[#1E3A8A]" />
-                UPI / Online Payment
+                Pay Online (Full Amount)
               </h3>
-              <p className="text-gray-500 text-sm mb-4">PhonePe, Google Pay, Paytm, Cards, Netbanking</p>
-              <div className="text-xs text-green-600 mb-6 font-medium">✓ No extra charges</div>
+              <p className="text-gray-500 text-sm mb-4">UPI, PhonePe, Google Pay, Paytm, Credit/Debit Cards, Netbanking</p>
+              <div className="text-xs text-green-600 mb-6 font-medium">✓ No extra charges • Full payment now</div>
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                <div className="text-sm text-blue-900">
+                  <div className="font-semibold">Complete payment required:</div>
+                  <div className="mt-2 flex justify-between">
+                    <span>Pay now:</span>
+                    <span className="font-bold text-lg">₹{pricing.grandTotal.toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+              </div>
               <button
                 onClick={(e) => { e.stopPropagation(); createRazorpayOrder(); }}
                 disabled={isLoading}
@@ -602,12 +622,29 @@ function CheckoutPage() {
                 <Banknote className="w-7 h-7 text-green-600" />
                 Cash on Delivery
               </h3>
-              <div className="text-xs text-orange-600 mb-2 font-medium">
-                ₹{pricing.convenienceFee.toLocaleString('en-IN')} convenience fee applies
-              </div>
-              <p className="text-gray-500 text-sm mb-6">
-                Pay ₹{pricing.payOnDeliveryAmount.toLocaleString('en-IN')} in cash on delivery. Confirm with ₹{pricing.convenienceFee.toLocaleString('en-IN')} online now.
+              <p className="text-gray-600 text-sm mb-4 font-medium">
+                Split payment: Pay ₹{pricing.convenienceFee} now + ₹{pricing.payOnDeliveryAmount.toLocaleString('en-IN')} in cash on delivery
               </p>
+              <div className="text-xs text-orange-600 mb-4 font-medium">
+                ⚠️ ₹{pricing.convenienceFee} convenience fee applies
+              </div>
+              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl">
+                <div className="text-sm text-green-900">
+                  <div className="font-semibold mb-2">Payment breakdown:</div>
+                  <div className="flex justify-between mb-2">
+                    <span>Step 1 - Pay online now:</span>
+                    <span className="font-bold">₹{pricing.payNowAmount}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-green-300 pt-2">
+                    <span>Step 2 - Pay in cash on delivery:</span>
+                    <span className="font-bold">₹{pricing.payOnDeliveryAmount.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-green-300 pt-2 font-semibold text-green-800">
+                    <span>Total amount:</span>
+                    <span>₹{pricing.grandTotal.toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+              </div>
               <button
                 onClick={(e) => { e.stopPropagation(); createRazorpayOrder(); }}
                 disabled={isLoading}
@@ -619,7 +656,7 @@ function CheckoutPage() {
                     Processing...
                   </>
                 ) : (
-                  <>Pay ₹{pricing.payNowAmount.toLocaleString('en-IN')} to Confirm COD</>
+                  <>Confirm with ₹{pricing.payNowAmount} Online</>
                 )}
               </button>
             </div>
@@ -638,11 +675,21 @@ function CheckoutPage() {
             <p className="font-mono text-2xl font-bold text-[#1E3A8A] mb-8">{orderId}</p>
 
             {isCOD && (
-              <div className="bg-green-50 border border-green-200 rounded-2xl p-6 mb-8 max-w-md mx-auto">
-                <h3 className="font-bold text-green-800 mb-3 text-lg">Cash on Delivery</h3>
-                <div className="flex justify-between text-sm">
-                  <span>Amount to pay on delivery (cash):</span>
-                  <span className="font-bold text-green-800">₹{pricing.payOnDeliveryAmount.toLocaleString('en-IN')}</span>
+              <div className="bg-orange-50 border-2 border-orange-200 rounded-2xl p-6 mb-8 max-w-md mx-auto">
+                <h3 className="font-bold text-orange-800 mb-4 text-lg">💰 Cash on Delivery</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium">✅ Paid online:</span>
+                    <span className="font-bold text-lg text-orange-700">₹{pricing.payNowAmount}</span>
+                  </div>
+                  <div className="border-t border-orange-300 pt-3 flex justify-between text-sm">
+                    <span className="font-medium">💵 Pay on delivery (cash):</span>
+                    <span className="font-bold text-lg text-orange-700">₹{pricing.payOnDeliveryAmount.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="border-t border-orange-300 pt-3 flex justify-between font-bold text-orange-900">
+                    <span>Total to collect:</span>
+                    <span>₹{pricing.grandTotal.toLocaleString('en-IN')}</span>
+                  </div>
                 </div>
               </div>
             )}
