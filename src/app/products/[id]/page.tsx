@@ -129,7 +129,7 @@ export default function ProductDetail() {
                   <span className="ml-2 px-3 py-1 rounded-full bg-red-100 text-red-600 font-bold text-sm">-{discount}%</span>
                 )}
               </div>
-              <p className="text-sm text-gray-500 mt-2">Delivery ₹99</p>
+              <p className="text-sm text-gray-500 mt-2">Free Delivery</p>
             </div>
 
             <div className="space-y-3">

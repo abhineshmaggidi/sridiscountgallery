@@ -59,7 +59,6 @@ export default function CartDrawer({ onCheckout }: CartDrawerProps) {
 
         <div className="px-4 md:px-6 py-4 border-t border-gray-100 bg-gray-50">
           <div className="flex justify-between mb-1 text-sm text-gray-500"><span>Subtotal</span><span>₹{subtotal.toLocaleString('en-IN')}</span></div>
-          <div className="flex justify-between mb-1 text-sm"><span className="text-gray-500">Delivery</span><span className="text-green-600 font-medium">₹99/item</span></div>
           <div className="flex justify-between mb-4 text-lg font-bold text-gray-900"><span>Total</span><span className="font-mono text-[#1E3A8A]">₹{subtotal.toLocaleString('en-IN')}</span></div>
           <button type="button" onClick={handleCheckout} disabled={items.length === 0}
             className="w-full py-3.5 rounded-xl bg-[#F97316] text-white font-bold text-[15px] disabled:opacity-40 active:opacity-80">

@@ -162,11 +162,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })),
         address: order.address,
         subtotal: order.total,
-        confirmationCharge: order.confirmationCharge,
+        convenience_fee: order.convenienceFee || 0,
         grand_total: order.grandTotal,
         payment_method: order.paymentMethod,
         payment_id: order.paymentId || '',
         status: order.status,
+        payment_status: order.payment_status || 'pending',
+        cod_advance_paid: order.cod_advance_paid || 0,
+        cod_advance_payment_id: order.cod_advance_payment_id || null,
+        amount_due_on_delivery: order.amount_due_on_delivery || 0,
       });
 
       // Add to local state too
@@ -206,7 +210,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           })),
           address: d.address as Order['address'],
           total: d.subtotal as number,
-          confirmationCharge: d.delivery_charge as number,
+          confirmationCharge: (d.delivery_charge as number) || 0,
+          convenienceFee: (d.convenience_fee as number) || 0,
           grandTotal: d.grand_total as number,
           status: d.status as Order['status'],
           date: new Date(d.created_at as string).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
@@ -214,6 +219,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           paymentMethod: d.payment_method as string,
           customerEmail: d.customer_email as string,
           customerName: d.customer_name as string,
+          payment_status: (d.payment_status as Order['payment_status']) || 'pending',
+          cod_advance_paid: (d.cod_advance_paid as number) || 0,
+          cod_advance_payment_id: (d.cod_advance_payment_id as string) || undefined,
+          amount_due_on_delivery: (d.amount_due_on_delivery as number) || 0,
         }));
         setOrders(mapped);
       }

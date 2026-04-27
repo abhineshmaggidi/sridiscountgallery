@@ -84,7 +84,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
               ))}
             </div>
 
-            <p className="text-[11px] text-gray-400 mb-4">🚚 Delivery: ₹99 per item</p>
+            <p className="text-[11px] text-gray-400 mb-4">🚚 Free Delivery</p>
 
             <div className="flex gap-2">
               <button type="button" onClick={() => { addItem(product); onClose(); }}

@@ -49,6 +49,7 @@ export interface Order {
   address: Address;
   total: number;
   confirmationCharge: number;
+  convenienceFee?: number;
   grandTotal: number;
   status: 'pending' | 'confirmed' | 'shipped' | 'delivered';
   date: string;

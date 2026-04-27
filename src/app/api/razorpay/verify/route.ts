@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySignature } from '@/lib/razorpay';
 import { createClient } from '@supabase/supabase-js';
+import { COD_CONVENIENCE_FEE } from '@/lib/constants';
 
 interface VerificationRequestBody {
   razorpay_order_id: string;
@@ -9,117 +10,122 @@ interface VerificationRequestBody {
   orderId: string;
 }
 
-// Rate limiting
 const rateLimit = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
-const RATE_LIMIT_MAX = 20; // 20 requests per minute
+const RATE_LIMIT_WINDOW = 60 * 1000;
+const RATE_LIMIT_MAX = 20;
 
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
   const userLimit = rateLimit.get(ip);
-
   if (!userLimit || now > userLimit.resetTime) {
     rateLimit.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
     return true;
   }
-
-  if (userLimit.count >= RATE_LIMIT_MAX) {
-    return false;
-  }
-
+  if (userLimit.count >= RATE_LIMIT_MAX) return false;
   userLimit.count++;
   return true;
 }
 
-function validateVerificationInput(body: VerificationRequestBody): { isValid: boolean; error?: string } {
+function validateInput(body: VerificationRequestBody): { isValid: boolean; error?: string } {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderId } = body;
-
   if (!razorpay_order_id || typeof razorpay_order_id !== 'string' || razorpay_order_id.length !== 21) {
-    return { isValid: false, error: 'Invalid order ID' };
+    return { isValid: false, error: 'Invalid Razorpay order ID' };
   }
-
-  if (!razorpay_payment_id || typeof razorpay_payment_id !== 'string' || razorpay_payment_id.length !== 17) {
+  if (!razorpay_payment_id || typeof razorpay_payment_id !== 'string' || razorpay_payment_id.length < 10) {
     return { isValid: false, error: 'Invalid payment ID' };
   }
-
   if (!razorpay_signature || typeof razorpay_signature !== 'string' || razorpay_signature.length !== 64) {
     return { isValid: false, error: 'Invalid signature' };
   }
-
   if (!orderId || typeof orderId !== 'string' || orderId.length > 100) {
     return { isValid: false, error: 'Invalid order ID' };
   }
-
   return { isValid: true };
 }
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting
     const clientIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     if (!checkRateLimit(clientIP)) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        { status: 429 }
-      );
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
     const body = await request.json();
-
-    // Input validation
-    const validation = validateVerificationInput(body);
+    const validation = validateInput(body);
     if (!validation.isValid) {
-      return NextResponse.json(
-        { error: validation.error },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderId } = body;
 
-    // Verify Supabase credentials are set
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      console.error('[Razorpay Verify] Supabase credentials missing');
-      return NextResponse.json(
-        { error: 'Server configuration error: Missing Supabase credentials' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Server configuration error: Missing Supabase credentials' }, { status: 500 });
     }
 
-    // Verify signature
-    const payload = razorpay_order_id + '|' + razorpay_payment_id;
-    const isValid = verifySignature(payload, razorpay_signature);
-
-    if (!isValid) {
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
-    }
-
-    // Update order status in Supabase
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     );
 
-    const { error } = await supabase
-      .from('orders')
-      .update({ 
-        status: 'paid',
-        razorpay_payment_id,
-        razorpay_signature 
-      })
-      .eq('id', orderId);
-
-    if (error) {
-      console.error('Supabase update error:', error);
-      throw new Error('Database update failed: ' + error.message);
+    // Verify signature
+    const payload = razorpay_order_id + '|' + razorpay_payment_id;
+    const isValid = verifySignature(payload, razorpay_signature);
+    if (!isValid) {
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true });
+    // Fetch order to check if COD or online
+    const { data: orderData, error: fetchError } = await supabase
+      .from('orders')
+      .select('payment_method')
+      .eq('id', orderId)
+      .single();
+
+    if (fetchError || !orderData) {
+      console.error('[Verify] Order not found:', fetchError);
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+
+    const isCOD = orderData.payment_method === 'cod';
+
+    // Update order based on payment type
+    const updateData = isCOD
+      ? {
+          status: 'confirmed',
+          payment_status: 'cod_advance_paid',
+          razorpay_order_id,
+          razorpay_payment_id,
+          razorpay_signature,
+          cod_advance_paid: COD_CONVENIENCE_FEE,
+          cod_advance_payment_id: razorpay_payment_id,
+        }
+      : {
+          status: 'confirmed',
+          payment_status: 'paid',
+          razorpay_order_id,
+          razorpay_payment_id,
+          razorpay_signature,
+        };
+
+    const { error: updateError } = await supabase
+      .from('orders')
+      .update(updateData)
+      .eq('id', orderId);
+
+    if (updateError) {
+      console.error('[Verify] Supabase update error:', updateError);
+      return NextResponse.json({ error: 'Database update failed: ' + updateError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      isCOD,
+      status: isCOD ? 'cod_advance_paid' : 'paid',
+    });
 
   } catch (error: unknown) {
     console.error('Verification error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Verification failed';
-    return NextResponse.json({ error: 'Payment verification failed: ' + errorMessage }, { status: 500 });
+    const msg = error instanceof Error ? error.message : 'Verification failed';
+    return NextResponse.json({ error: 'Payment verification failed: ' + msg }, { status: 500 });
   }
 }
-

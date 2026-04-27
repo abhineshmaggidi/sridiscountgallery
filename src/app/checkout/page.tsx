@@ -1,75 +1,49 @@
 'use client';
 
-import { useState, useRef, Suspense } from 'react';
-import { MapPin, CheckCircle, ArrowRight, Home, ShoppingBag, Loader2, CreditCard, AlertCircle, Banknote } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useState, useRef, Suspense, useEffect } from 'react';
+import {
+  MapPin, CheckCircle, ArrowRight, Home, ShoppingBag,
+  Loader2, AlertCircle, Banknote, Wallet, CreditCard
+} from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { Order } from '@/types';
-import { sanitizeEmail, sanitizePhone, sanitizeName, sanitizeAddress, sanitizePincode } from '@/lib/security';
+import { calculatePricing } from '@/lib/pricing';
+import {
+  sanitizeEmail, sanitizePhone, sanitizeName,
+  sanitizeAddress, sanitizePincode
+} from '@/lib/security';
 
-const CONFIRMATION_PER_ITEM = 99;
-
+/* ─── Razorpay types ─── */
 interface RazorpayResponse {
   razorpay_order_id: string;
   razorpay_payment_id: string;
   razorpay_signature: string;
 }
-
 interface RazorpayOrderResponse {
-  orderId: string;
-  amount: number;
-  currency: string;
-  key: string;
-  name: string;
-  description: string;
-  prefill: {
-    name: string;
-    email: string;
-    contact: string;
-  };
-  theme: {
-    color: string;
-  };
+  orderId: string; amount: number; currency: string; key: string;
+  name: string; description: string;
+  prefill: { name: string; email: string; contact: string };
+  theme: { color: string };
 }
-
 interface RazorpayOptions {
-  key: string;
-  amount: number;
-  currency: string;
-  name: string;
-  description: string;
-  order_id: string;
+  key: string; amount: number; currency: string;
+  name: string; description: string; order_id: string;
   handler: (response: RazorpayResponse) => void;
-  prefill: {
-    name: string;
-    email: string;
-    contact: string;
-  };
-  theme: {
-    color: string;
-  };
-  modal: {
-    ondismiss: () => void;
-  };
+  prefill: { name: string; email: string; contact: string };
+  theme: { color: string };
+  modal: { ondismiss: () => void };
 }
-
-interface RazorpayInstance {
-  open(): void;
-}
-
+interface RazorpayInstance { open(): void }
 declare global {
-  interface Window {
-    Razorpay?: new (options: RazorpayOptions) => RazorpayInstance;
-  }
+  interface Window { Razorpay?: new (options: RazorpayOptions) => RazorpayInstance; }
 }
 
+/* ─── helpers ─── */
 function loadRazorpayScript(): Promise<boolean> {
   return new Promise((resolve) => {
-    if (window.Razorpay) {
-      resolve(true);
-      return;
-    }
+    if (window.Razorpay) { resolve(true); return; }
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.onload = () => resolve(true);
@@ -77,20 +51,18 @@ function loadRazorpayScript(): Promise<boolean> {
     document.body.appendChild(script);
   });
 }
-
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
-
 function isValidPhone(phone: string) {
   const digits = phone.replace(/\D/g, '');
   return digits.length >= 10 && digits.length <= 12;
 }
-
 function isValidPincode(pincode: string) {
   return /^\d{6}$/.test(pincode);
 }
 
+/* ─── component ─── */
 function CheckoutPage() {
   const router = useRouter();
   const { items, subtotal, clearCart } = useCart();
@@ -98,35 +70,46 @@ function CheckoutPage() {
 
   const [step, setStep] = useState<'guest-info' | 'address' | 'payment' | 'confirmation'>('guest-info');
   const [guestInfo, setGuestInfo] = useState({
-    name: user?.name || '',
-    phone: user?.phone || '',
-    email: '',
-    street: '',
-    city: '',
-    state: '',
-    pincode: '',
+    name: user?.name || '', phone: user?.phone || '',
+    email: '', street: '', city: '', state: '', pincode: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [orderId, setOrderId] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'cod'>('razorpay');
   const [paymentError, setPaymentError] = useState('');
   const razorpayRef = useRef<RazorpayInstance | null>(null);
+  const searchParams = useSearchParams();
 
-  const totalItems = items.reduce((s, i) => s + i.qty, 0);
-  const confirmationCharge = totalItems * CONFIRMATION_PER_ITEM;
-  const grandTotal = subtotal + confirmationCharge;
+  // Pre-select COD if redirected from CheckoutModal
+  useEffect(() => {
+    if (searchParams.get('payment') === 'cod') {
+      setPaymentMethod('cod');
+    }
+  }, [searchParams]);
+
+  const pricing = calculatePricing(subtotal, paymentMethod);
+  const isCOD = paymentMethod === 'cod';
 
   const steps = [
-    { key: 'guest-info', label: 'Details', icon: '👤' },
-    { key: 'address', label: 'Address', icon: '📍' },
-    { key: 'payment', label: 'Payment', icon: '💳' },
-    { key: 'confirmation', label: 'Done ✓', icon: '✅' },
+    { key: 'guest-info' as const, label: 'Details', icon: '👤' },
+    { key: 'address' as const, label: 'Address', icon: '📍' },
+    { key: 'payment' as const, label: 'Payment', icon: '💳' },
+    { key: 'confirmation' as const, label: 'Done ✓', icon: '✅' },
   ];
   const stepIndex = steps.findIndex(s => s.key === step);
 
-  // Validation helpers
-  const guestInfoValid = guestInfo.name.trim().length >= 2 && isValidPhone(guestInfo.phone) && isValidEmail(guestInfo.email);
-  const addressValid = guestInfo.street.trim().length >= 3 && guestInfo.city.trim().length >= 2 && guestInfo.state.trim().length >= 2 && isValidPincode(guestInfo.pincode);
+  /* validation */
+  const guestInfoValid =
+    guestInfo.name.trim().length >= 2 &&
+    isValidPhone(guestInfo.phone) &&
+    isValidEmail(guestInfo.email);
+  const addressValid =
+    guestInfo.street.trim().length >= 3 &&
+    guestInfo.city.trim().length >= 2 &&
+    guestInfo.state.trim().length >= 2 &&
+    isValidPincode(guestInfo.pincode);
 
+  /* ─── navigation handlers ─── */
   const handleContinueToAddress = () => {
     if (guestInfoValid) setStep('address');
   };
@@ -135,39 +118,42 @@ function CheckoutPage() {
     if (addressValid) setStep('payment');
   };
 
+  /* ─── order helpers ─── */
   const buildOrder = (overrides?: Partial<Order>): Order => {
-    const finalAddress = {
-      fullName: guestInfo.name.trim(),
-      phone: guestInfo.phone.trim(),
-      street: guestInfo.street.trim(),
-      city: guestInfo.city.trim(),
-      state: guestInfo.state.trim(),
-      pincode: guestInfo.pincode.trim(),
-    };
     const id = orderId || 'SDG-' + Date.now().toString(36).toUpperCase();
     return {
       id,
       items: [...items],
-      address: finalAddress,
+      address: {
+        fullName: guestInfo.name.trim(),
+        phone: guestInfo.phone.trim(),
+        street: guestInfo.street.trim(),
+        city: guestInfo.city.trim(),
+        state: guestInfo.state.trim(),
+        pincode: guestInfo.pincode.trim(),
+      },
       total: subtotal,
-      confirmationCharge,
-      grandTotal,
+      confirmationCharge: 0,
+      convenienceFee: pricing.convenienceFee,
+      grandTotal: pricing.grandTotal,
       status: 'confirmed',
-      date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+      date: new Date().toLocaleDateString('en-IN', {
+        day: 'numeric', month: 'short', year: 'numeric',
+      }),
       paymentId: 'pay_' + Date.now().toString(36),
-      paymentMethod: 'UPI',
+      paymentMethod: isCOD ? 'Cash on Delivery' : 'Razorpay',
       customerEmail: guestInfo.email.trim(),
       customerName: guestInfo.name.trim(),
+      payment_status: isCOD ? 'cod_pending' : 'paid',
+      cod_advance_paid: 0,
+      amount_due_on_delivery: pricing.payOnDeliveryAmount,
       ...overrides,
     };
   };
 
   const saveOrderLocally = (order: Order) => {
-    try {
-      localStorage.setItem('sdg_last_order', JSON.stringify(order));
-    } catch { /* ignore */ }
+    try { localStorage.setItem('sdg_last_order', JSON.stringify(order)); } catch { /* ignore */ }
   };
-
   const finalizeOrder = async (order: Order) => {
     await addOrder(order);
     saveOrderLocally(order);
@@ -175,6 +161,37 @@ function CheckoutPage() {
     setStep('confirmation');
   };
 
+  /* ─── DB order creation ─── */
+  const createOrderInDB = async (id: string, method: 'razorpay' | 'cod') => {
+    const res = await fetch('/api/orders/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id,
+        customerName: guestInfo.name,
+        customerEmail: guestInfo.email,
+        items: items.map(i => ({ product: i.product, qty: i.qty })),
+        address: {
+          fullName: guestInfo.name.trim(),
+          phone: guestInfo.phone.trim(),
+          street: guestInfo.street.trim(),
+          city: guestInfo.city.trim(),
+          state: guestInfo.state.trim(),
+          pincode: guestInfo.pincode.trim(),
+        },
+        subtotal,
+        paymentMethod: method,
+        userId: user?.id || null,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to create order');
+    }
+    return res.json();
+  };
+
+  /* ─── Razorpay flow ─── */
   const createRazorpayOrder = async () => {
     setIsLoading(true);
     setPaymentError('');
@@ -182,11 +199,17 @@ function CheckoutPage() {
       const receipt = 'SDG-' + Date.now().toString(36).toUpperCase();
       setOrderId(receipt);
 
+      // Create order in DB first (pending_payment status)
+      await createOrderInDB(receipt, paymentMethod);
+
+      // Determine amount to charge (full subtotal for online, ₹99 convenience fee for COD)
+      const amountToCharge = pricing.payNowAmount;
+
       const response = await fetch('/api/razorpay/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: grandTotal,
+          amount: amountToCharge,
           receipt,
           customerEmail: guestInfo.email,
           customerName: guestInfo.name
@@ -205,7 +228,7 @@ function CheckoutPage() {
 
       if (!response.ok) {
         const err = 'error' in data ? data.error : undefined;
-        throw new Error(err || 'Failed to create order');
+        throw new Error(err || 'Failed to create payment order');
       }
 
       const orderData = data as RazorpayOrderResponse;
@@ -215,7 +238,7 @@ function CheckoutPage() {
         throw new Error('Razorpay SDK failed to load. Please check your internet connection.');
       }
 
-      const options = {
+      const options: RazorpayOptions = {
         key: orderData.key,
         amount: orderData.amount,
         currency: orderData.currency,
@@ -266,8 +289,11 @@ function CheckoutPage() {
         const order = buildOrder({
           id: receipt,
           paymentId: response.razorpay_payment_id,
-          paymentMethod: 'Razorpay',
+          paymentMethod: isCOD ? 'Cash on Delivery' : 'Razorpay',
           status: 'confirmed',
+          razorpay_payment_id: response.razorpay_payment_id,
+          payment_status: isCOD ? 'cod_advance_paid' : 'paid',
+          cod_advance_paid: isCOD ? pricing.convenienceFee : 0,
         });
         await finalizeOrder(order);
       } else {
@@ -282,10 +308,23 @@ function CheckoutPage() {
     }
   };
 
-  const placeOrderCOD = async () => {
-    const id = 'COD-' + Date.now().toString(36).toUpperCase();
-    setOrderId(id);
-    const order = buildOrder({ id, paymentMethod: 'Cash on Delivery', status: 'confirmed', paymentId: 'cod_' + Date.now() });
+  // Fallback for Razorpay failures (test mode)
+  const handleSimulatePayment = async () => {
+    const receipt = orderId || 'TEST-' + Date.now().toString(36).toUpperCase();
+    setOrderId(receipt);
+
+    try {
+      await createOrderInDB(receipt, paymentMethod);
+    } catch {
+      // Continue even if DB fails
+    }
+
+    const order = buildOrder({
+      id: receipt,
+      paymentId: 'pay_test_' + Date.now(),
+      paymentMethod: isCOD ? 'Cash on Delivery' : 'Razorpay (Test Mode)',
+      status: 'confirmed',
+    });
     await finalizeOrder(order);
   };
 
@@ -474,22 +513,38 @@ function CheckoutPage() {
                       <p className="text-gray-600 text-sm">{item.product.brand}</p>
                       <p className="text-gray-700 font-semibold text-lg mt-1">₹{item.product.price.toLocaleString('en-IN')} × {item.qty}</p>
                     </div>
+                    <span className="font-bold text-lg text-[#1E3A8A]">₹{(item.product.price * item.qty).toLocaleString('en-IN')}</span>
                   </div>
                 ))}
               </div>
               <div className="border-t pt-6 space-y-2">
                 <div className="flex justify-between text-xl">
                   <span className="text-gray-700 font-semibold">Subtotal</span>
-                  <span className="font-mono text-xl font-bold">₹{subtotal.toLocaleString('en-IN')}</span>
+                  <span className="font-mono text-xl font-bold">₹{pricing.subtotal.toLocaleString('en-IN')}</span>
                 </div>
-                <div className="flex justify-between text-xl">
-                  <span className="text-gray-700 font-semibold">Confirmation Charges ({totalItems} items)</span>
-                  <span className="font-mono text-xl font-bold">₹{confirmationCharge.toLocaleString('en-IN')}</span>
-                </div>
+
                 <div className="border-t pt-4 flex justify-between text-2xl font-bold text-[#1E3A8A]">
-                  <span>Total</span>
-                  <span className="font-mono">₹{grandTotal.toLocaleString('en-IN')}</span>
+                  <span>Grand Total</span>
+                  <span className="font-mono">₹{pricing.grandTotal.toLocaleString('en-IN')}</span>
                 </div>
+                {isCOD && (
+                  <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-xl text-sm">
+                    <div className="font-semibold text-orange-800 mb-1">Payment Breakdown:</div>
+                    <div className="flex justify-between">
+                      <span>Pay now (online):</span>
+                      <span className="font-semibold">₹{pricing.payNowAmount}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Pay on delivery (cash):</span>
+                      <span className="font-semibold">₹{pricing.payOnDeliveryAmount.toLocaleString('en-IN')}</span>
+                    </div>
+                  </div>
+                )}
+                {!isCOD && (
+                  <div className="text-xs text-green-600 mt-2">
+                    ✓ Free delivery — pay ₹{pricing.payNowAmount.toLocaleString('en-IN')} online
+                  </div>
+                )}
               </div>
             </div>
 
@@ -501,17 +556,7 @@ function CheckoutPage() {
                   <p className="text-red-700 font-medium">{paymentError}</p>
                   {paymentError.includes('Authentication failed') && (
                     <button
-                      onClick={() => {
-                        const receipt = orderId || 'TEST-' + Date.now().toString(36).toUpperCase();
-                        setOrderId(receipt);
-                        const order = buildOrder({
-                          id: receipt,
-                          paymentId: 'pay_test_' + Date.now(),
-                          paymentMethod: 'Razorpay (Test Mode)',
-                          status: 'confirmed',
-                        });
-                        finalizeOrder(order);
-                      }}
+                      onClick={handleSimulatePayment}
                       className="mt-3 w-full py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 text-white font-bold shadow-lg hover:shadow-xl transition-all"
                     >
                       🧪 Simulate Successful Payment & Place Order
@@ -521,15 +566,19 @@ function CheckoutPage() {
               </div>
             )}
 
-            {/* Razorpay Card */}
-            <div className="bg-white rounded-3xl shadow-lg border p-8">
-              <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <CreditCard className="w-7 h-7 text-[#1E3A8A]" />
-                Pay Online (Cards, UPI, Netbanking)
+            {/* Online Payment Card */}
+            <div
+              onClick={() => setPaymentMethod('razorpay')}
+              className={`bg-white rounded-3xl shadow-lg border p-8 cursor-pointer transition-all ${paymentMethod === 'razorpay' ? 'border-[#1E3A8A] ring-2 ring-[#1E3A8A]/10' : ''}`}
+            >
+              <h3 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                <Wallet className="w-7 h-7 text-[#1E3A8A]" />
+                UPI / Online Payment
               </h3>
-              <p className="text-gray-600 mb-6">Secure payment powered by Razorpay. Supports all major cards, UPI, wallets & netbanking.</p>
+              <p className="text-gray-500 text-sm mb-4">PhonePe, Google Pay, Paytm, Cards, Netbanking</p>
+              <div className="text-xs text-green-600 mb-6 font-medium">✓ No extra charges</div>
               <button
-                onClick={createRazorpayOrder}
+                onClick={(e) => { e.stopPropagation(); createRazorpayOrder(); }}
                 disabled={isLoading}
                 className="w-full py-5 rounded-3xl bg-gradient-to-r from-[#1E3A8A] to-[#3B82F6] text-white text-xl font-bold shadow-2xl hover:shadow-3xl disabled:opacity-50 transition-all"
               >
@@ -539,23 +588,39 @@ function CheckoutPage() {
                     Processing...
                   </>
                 ) : (
-                  <>Pay ₹{grandTotal.toLocaleString('en-IN')} with Razorpay</>
+                  <>Pay ₹{pricing.payNowAmount.toLocaleString('en-IN')} with Razorpay</>
                 )}
               </button>
             </div>
 
-            {/* Cash on Delivery */}
-            <div className="bg-white rounded-3xl shadow-lg border p-8">
+            {/* COD Card */}
+            <div
+              onClick={() => setPaymentMethod('cod')}
+              className={`bg-white rounded-3xl shadow-lg border p-8 cursor-pointer transition-all ${paymentMethod === 'cod' ? 'border-green-400 ring-2 ring-green-100' : ''}`}
+            >
               <h3 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
                 <Banknote className="w-7 h-7 text-green-600" />
                 Cash on Delivery
               </h3>
-              <p className="text-gray-500 text-sm mb-6">Pay ₹{grandTotal.toLocaleString('en-IN')} when your order is delivered.</p>
+              <div className="text-xs text-orange-600 mb-2 font-medium">
+                ₹{pricing.convenienceFee.toLocaleString('en-IN')} convenience fee applies
+              </div>
+              <p className="text-gray-500 text-sm mb-6">
+                Pay ₹{pricing.payOnDeliveryAmount.toLocaleString('en-IN')} in cash on delivery. Confirm with ₹{pricing.convenienceFee.toLocaleString('en-IN')} online now.
+              </p>
               <button
-                onClick={placeOrderCOD}
-                className="w-full py-5 rounded-3xl border-2 border-green-300 bg-green-50 text-green-700 text-xl font-bold shadow-lg hover:shadow-xl hover:bg-green-100 transition-all"
+                onClick={(e) => { e.stopPropagation(); createRazorpayOrder(); }}
+                disabled={isLoading}
+                className="w-full py-5 rounded-3xl border-2 border-green-300 bg-green-50 text-green-700 text-xl font-bold shadow-lg hover:shadow-xl hover:bg-green-100 transition-all disabled:opacity-50"
               >
-                Place COD Order — ₹{grandTotal.toLocaleString('en-IN')}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-6 h-6 inline mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>Pay ₹{pricing.payNowAmount.toLocaleString('en-IN')} to Confirm COD</>
+                )}
               </button>
             </div>
           </div>
@@ -571,6 +636,25 @@ function CheckoutPage() {
               Order Confirmed!
             </h1>
             <p className="font-mono text-2xl font-bold text-[#1E3A8A] mb-8">{orderId}</p>
+
+            {isCOD && (
+              <div className="bg-green-50 border border-green-200 rounded-2xl p-6 mb-8 max-w-md mx-auto">
+                <h3 className="font-bold text-green-800 mb-3 text-lg">Cash on Delivery</h3>
+                <div className="flex justify-between text-sm">
+                  <span>Amount to pay on delivery (cash):</span>
+                  <span className="font-bold text-green-800">₹{pricing.payOnDeliveryAmount.toLocaleString('en-IN')}</span>
+                </div>
+              </div>
+            )}
+
+            {!isCOD && (
+              <div className="bg-green-50 border border-green-200 rounded-2xl p-6 mb-8 max-w-md mx-auto">
+                <span className="text-green-700 font-semibold text-lg">
+                  ✓ Paid ₹{pricing.grandTotal.toLocaleString('en-IN')} online
+                </span>
+              </div>
+            )}
+
             <div className="bg-white rounded-3xl shadow-lg border p-8 mb-12 max-w-md mx-auto">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Delivered to:</h3>
               <div className="space-y-1 text-lg">
@@ -580,6 +664,7 @@ function CheckoutPage() {
                 <p>{guestInfo.city}, {guestInfo.state} - {guestInfo.pincode}</p>
               </div>
             </div>
+
             <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
               <button
                 onClick={() => router.push('/')}
@@ -603,7 +688,11 @@ function CheckoutPage() {
 
 function CheckoutPageWrapper() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#1E3A8A]"></div>
+      </div>
+    }>
       <CheckoutPage />
     </Suspense>
   );

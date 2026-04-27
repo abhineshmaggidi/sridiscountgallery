@@ -15,7 +15,8 @@ interface DBOrder {
   items: { productId: number; name: string; brand: string; price: number; image: string; qty: number }[];
   address: { fullName: string; phone: string; street: string; city: string; state: string; pincode: string };
   subtotal: number;
-  delivery_charge: number;
+  delivery_charge?: number;
+  convenience_fee: number;
   grand_total: number;
   payment_method: string;
   payment_id: string;
@@ -175,7 +176,6 @@ export default function AdminPage() {
                           </div>
                           <div className="text-right">
                             <p className="font-mono font-bold text-gray-800">₹{(item.price * item.qty).toLocaleString('en-IN')}</p>
-                            <p className="text-[11px] text-gray-400">+ ₹{(item.qty * 99)} delivery</p>
                           </div>
                         </div>
                       ))}
@@ -186,8 +186,13 @@ export default function AdminPage() {
                         <span>Subtotal</span><span className="font-mono">₹{selectedOrder.subtotal.toLocaleString('en-IN')}</span>
                       </div>
                       <div className="flex justify-between text-sm text-gray-500">
-                        <span>Delivery</span><span className="font-mono">₹{selectedOrder.delivery_charge.toLocaleString('en-IN')}</span>
+                        <span>Delivery</span><span className="font-mono">₹{(selectedOrder.delivery_charge || 0).toLocaleString('en-IN')}</span>
                       </div>
+                      {selectedOrder.convenience_fee > 0 && (
+                        <div className="flex justify-between text-sm text-orange-600">
+                          <span>COD Convenience Fee</span><span className="font-mono">₹{selectedOrder.convenience_fee.toLocaleString('en-IN')}</span>
+                        </div>
+                      )}
                       <div className="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t border-gray-100">
                         <span>Grand Total</span><span className="font-mono text-[#1E3A8A]">₹{selectedOrder.grand_total.toLocaleString('en-IN')}</span>
                       </div>

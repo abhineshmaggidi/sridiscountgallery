@@ -3,48 +3,25 @@
 import { useEffect, useState } from 'react';
 import { Package, MapPin, CreditCard, Truck, Clock, CheckCircle, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { Order } from '@/types';
 import Link from 'next/link';
-
-interface Order {
-  id: string;
-  items: Array<{
-    product: {
-      id: number;
-      name: string;
-      image: string;
-      price: number;
-    };
-    qty: number;
-  }>;
-  address: {
-    fullName: string;
-    phone: string;
-    street: string;
-    city: string;
-    state: string;
-    pincode: string;
-  };
-  total: number;
-  confirmationCharge: number;
-  grandTotal: number;
-  status: 'placed' | 'pending' | 'confirmed' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  date: string;
-  paymentMethod: string;
-  paymentId: string;
-}
 
 const statusConfig = {
   placed: { label: 'Order Placed', icon: Clock, color: 'orange' },
   pending: { label: 'Payment Pending', icon: Clock, color: 'yellow' },
+  pending_payment: { label: 'Payment Pending', icon: Clock, color: 'yellow' },
   confirmed: { label: 'Confirmed', icon: CheckCircle, color: 'blue' },
   paid: { label: 'Paid', icon: CreditCard, color: 'green' },
   processing: { label: 'Processing', icon: Package, color: 'blue' },
   shipped: { label: 'Shipped', icon: Truck, color: 'purple' },
   delivered: { label: 'Delivered', icon: CheckCircle, color: 'green' },
   cancelled: { label: 'Cancelled', icon: X, color: 'red' },
+  cancelled_no_payment: { label: 'Cancelled — No Payment', icon: X, color: 'red' },
 } as const;
 
 function OrderCard({ order }: { order: Order }) {
+  const isCOD = order.paymentMethod?.toLowerCase().includes('cod') || order.paymentMethod === 'Cash on Delivery';
+
   return (
     <div className="bg-white rounded-3xl shadow-lg border hover:shadow-2xl transition-all group">
       <div className="p-8 border-b border-gray-100">
@@ -61,7 +38,7 @@ function OrderCard({ order }: { order: Order }) {
           <div className={`px-4 py-2 rounded-full text-sm font-bold ${
             order.status === 'delivered' ? 'bg-green-100 text-green-800' :
             order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
-            order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+            order.status === 'cancelled' || order.status === 'cancelled_no_payment' ? 'bg-red-100 text-red-800' :
             order.status === 'paid' ? 'bg-green-100 text-green-800' :
             'bg-orange-100 text-orange-800'
           }`}>
@@ -96,6 +73,24 @@ function OrderCard({ order }: { order: Order }) {
                   <p className="text-gray-500 font-mono">{order.paymentId}</p>
                 </div>
               </div>
+
+              {/* COD Payment Breakdown */}
+              {isCOD && (
+                <div className="p-3 bg-orange-50 border border-orange-200 rounded-2xl">
+                  <p className="font-semibold text-orange-800 mb-2">Cash on Delivery</p>
+                  {(order.cod_advance_paid || 0) > 0 && (
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-orange-700">Convenience fee paid online:</span>
+                      <span className="font-semibold text-green-600">₹{order.cod_advance_paid}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm">
+                    <span className="text-orange-700">Amount due on delivery:</span>
+                    <span className="font-bold text-orange-800">₹{(order.amount_due_on_delivery || order.grandTotal).toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-2xl">
                 <MapPin className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
                 <div className="text-sm">

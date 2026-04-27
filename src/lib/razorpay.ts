@@ -1,3 +1,4 @@
+import { createHmac } from 'crypto';
 import Razorpay from 'razorpay';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -70,8 +71,6 @@ export async function createRazorpayOrder(
     });
   });
 }
-
-import { createHmac } from 'crypto';
 
 export function verifySignature(
   payload: string,

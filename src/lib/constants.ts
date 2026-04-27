@@ -1,0 +1,2 @@
+export const COD_CONVENIENCE_FEE = 99;
+export const DELIVERY_CHARGE_PER_ITEM = 99;

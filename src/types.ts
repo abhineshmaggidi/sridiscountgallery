@@ -42,8 +42,9 @@ export interface Order {
   address: Address;
   total: number;
   confirmationCharge: number;
+  convenienceFee?: number;
   grandTotal: number;
-  status: 'placed' | 'pending' | 'confirmed' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: 'placed' | 'pending' | 'pending_payment' | 'confirmed' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'cancelled_no_payment';
   date: string;
   paymentId: string;
   paymentMethod: string;
@@ -51,7 +52,11 @@ export interface Order {
   customerName: string;
   razorpay_order_id?: string;
   razorpay_payment_id?: string;
+  // New COD fields
+  payment_status?: 'pending' | 'paid' | 'cod_advance_paid' | 'cod_pending' | 'cancelled_no_payment';
+  cod_advance_paid?: number;
+  cod_advance_payment_id?: string;
+  amount_due_on_delivery?: number;
 }
 
 export type CheckoutStep = 'address' | 'payment' | 'confirmation' | 'tracking';
-
