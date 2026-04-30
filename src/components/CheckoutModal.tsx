@@ -161,10 +161,21 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
 
               <div className="flex items-center gap-3 my-3"><div className="flex-1 h-px bg-gray-200" /><span className="text-[11px] text-gray-400">OR</span><div className="flex-1 h-px bg-gray-200" /></div>
 
-              <button type="button" onClick={() => router.push('/checkout?payment=cod')}
-                className="w-full py-3 rounded-xl border-2 border-green-200 bg-green-50 text-green-700 font-bold text-[14px] active:bg-green-100">
-                💵 Cash on Delivery — ₹99 convenience fee
-              </button>
+<div className="flex items-center gap-3">
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                  paymentMethod === 'cod' 
+                    ? 'border-green-500 bg-green-500' 
+                    : 'border-gray-300'
+                }`}>
+                  {paymentMethod === 'cod' && (
+                    <CheckCircle className="w-3 h-3 text-white" />
+                  )}
+                </div>
+                <button type="button" onClick={() => router.push('/checkout?payment=cod')}
+                  className="flex-1 py-3 rounded-xl border-2 border-green-200 bg-green-50 text-green-700 font-bold text-[14px] active:bg-green-100">
+                  💵 Cash on Delivery — ₹99 convenience fee
+                </button>
+              </div>
 
               <button type="button" onClick={() => setStep('address')} className="w-full mt-3 py-2.5 rounded-xl border border-gray-200 text-gray-500 text-sm flex items-center justify-center gap-2">
                 <ArrowLeft className="w-4 h-4" /> Back
