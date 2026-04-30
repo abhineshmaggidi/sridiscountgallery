@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { COD_CONVENIENCE_FEE } from '@/lib/constants';
-import { products } from '@/data/products';
-import { sanitizeAddress, sanitizeEmail, sanitizePhone, sanitizeString, sanitizePincode } from '@/lib/security';
 
 interface CreateOrderBody {
   id: string;
@@ -46,43 +44,17 @@ function validateInput(body: CreateOrderBody): { isValid: boolean; error?: strin
   if (!body.id || typeof body.id !== 'string' || body.id.length > 100) {
     return { isValid: false, error: 'Invalid order ID' };
   }
-  if (!body.customerName || typeof body.customerName !== 'string' || body.customerName.trim().length < 2) {
+  if (!body.customerName || body.customerName.trim().length < 2) {
     return { isValid: false, error: 'Invalid customer name' };
   }
-  if (!body.customerEmail || typeof body.customerEmail !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.customerEmail)) {
+  if (!body.customerEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.customerEmail)) {
     return { isValid: false, error: 'Invalid email' };
   }
-  if (!Array.isArray(body.items) || body.items.length === 0 || body.items.length > 50) {
-    return { isValid: false, error: 'Invalid order items' };
+  if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
+    return { isValid: false, error: 'No items in order' };
   }
-  for (const item of body.items) {
-    if (!item || typeof item !== 'object' || typeof item.qty !== 'number' || item.qty < 1 || item.qty > 20) {
-      return { isValid: false, error: 'Invalid item quantity' };
-    }
-    if (!item.product || typeof item.product.id !== 'number' || item.product.id <= 0) {
-      return { isValid: false, error: 'Invalid product in order' };
-    }
-  }
-  if (!body.address || typeof body.address !== 'object') {
+  if (!body.address || !body.address.fullName || !body.address.street || !body.address.city || !body.address.state || !body.address.pincode) {
     return { isValid: false, error: 'Invalid address' };
-  }
-  if (typeof body.address.fullName !== 'string' || body.address.fullName.trim().length < 2) {
-    return { isValid: false, error: 'Invalid address name' };
-  }
-  if (typeof body.address.phone !== 'string' || !/^[+]?\d{10,15}$/.test(body.address.phone)) {
-    return { isValid: false, error: 'Invalid phone number' };
-  }
-  if (typeof body.address.street !== 'string' || body.address.street.trim().length < 3) {
-    return { isValid: false, error: 'Invalid street address' };
-  }
-  if (typeof body.address.city !== 'string' || body.address.city.trim().length < 2) {
-    return { isValid: false, error: 'Invalid city' };
-  }
-  if (typeof body.address.state !== 'string' || body.address.state.trim().length < 2) {
-    return { isValid: false, error: 'Invalid state' };
-  }
-  if (typeof body.address.pincode !== 'string' || !/^\d{6}$/.test(body.address.pincode)) {
-    return { isValid: false, error: 'Invalid pincode' };
   }
   if (typeof body.subtotal !== 'number' || body.subtotal <= 0) {
     return { isValid: false, error: 'Invalid subtotal' };
@@ -106,73 +78,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://dztspskgctvtnargrsxj.supabase.co';
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6dHNwc2tnY3R2dG5hcmdyc3hqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNTc3NjQsImV4cCI6MjA5MTkzMzc2NH0.f-sgEJ24DUGQEhpPfAUi-pp6USSNRPdVLK8wmhqLUyA';
 
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json({ error: 'Server configuration error: Missing Supabase service role credentials' }, { status: 500 });
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { persistSession: false }
-    });
-
-    let computedSubtotal = 0;
-    const validatedItems = [] as Array<{
-      productId: number;
-      name: string;
-      brand: string;
-      price: number;
-      image: string;
-      qty: number;
-    }>;
-
-    for (const item of body.items) {
-      const product = products.find((p) => p.id === item.product.id);
-      if (!product) {
-        return NextResponse.json({ error: 'Invalid product in order' }, { status: 400 });
-      }
-
-      const qty = Math.min(Math.max(Math.trunc(item.qty), 1), 20);
-      const lineTotal = product.price * qty;
-      computedSubtotal += lineTotal;
-      validatedItems.push({
-        productId: product.id,
-        name: product.name,
-        brand: product.brand,
-        price: product.price,
-        image: product.image,
-        qty,
-      });
-    }
-
-    if (computedSubtotal !== body.subtotal) {
-      return NextResponse.json({ error: 'Order subtotal does not match server-side pricing' }, { status: 400 });
-    }
-
-    const address = {
-      fullName: sanitizeString(body.address.fullName, 100),
-      phone: sanitizePhone(body.address.phone),
-      street: sanitizeAddress(body.address.street),
-      city: sanitizeString(body.address.city, 100),
-      state: sanitizeString(body.address.state, 100),
-      pincode: sanitizePincode(body.address.pincode),
-    };
+    const supabase = createClient(
+      supabaseUrl,
+      supabaseAnonKey
+    );
 
     const isCOD = body.paymentMethod === 'cod';
     const convenienceFee = isCOD ? COD_CONVENIENCE_FEE : 0;
-    const grandTotal = computedSubtotal + convenienceFee;
-    const payNowAmount = isCOD ? convenienceFee : computedSubtotal;
-    const amountDueOnDelivery = isCOD ? computedSubtotal : 0;
+    const grandTotal = isCOD ? body.subtotal + COD_CONVENIENCE_FEE : body.subtotal;
+    const payNowAmount = isCOD ? COD_CONVENIENCE_FEE : body.subtotal;
+    const amountDueOnDelivery = isCOD ? body.subtotal : 0;
 
     const { error } = await supabase.from('orders').insert({
-      id: sanitizeString(body.id, 100),
+      id: body.id,
       user_id: body.userId || null,
-      customer_name: sanitizeString(body.customerName, 100),
-      customer_email: sanitizeEmail(body.customerEmail),
-      items: validatedItems,
-      address,
-      subtotal: computedSubtotal,
+      customer_name: body.customerName.trim(),
+      customer_email: body.customerEmail.toLowerCase().trim(),
+      items: body.items.map(i => ({
+        productId: i.product.id,
+        name: i.product.name,
+        brand: i.product.brand,
+        price: i.product.price,
+        image: i.product.image,
+        qty: i.qty,
+      })),
+      address: body.address,
+      subtotal: body.subtotal,
       convenience_fee: convenienceFee,
       grand_total: grandTotal,
       amount_due_on_delivery: amountDueOnDelivery,

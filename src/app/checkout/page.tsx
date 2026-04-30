@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, Suspense, useEffect, useMemo } from 'react';
+import { useState, useRef, Suspense, useEffect } from 'react';
 import {
   MapPin, CheckCircle, ArrowRight, Home, ShoppingBag,
   Loader2, AlertCircle, Banknote, Wallet, CreditCard
@@ -12,7 +12,7 @@ import { Order } from '@/types';
 import { calculatePricing } from '@/lib/pricing';
 import {
   sanitizeEmail, sanitizePhone, sanitizeName,
-  sanitizeAddress, sanitizePincode, generateSecureId
+  sanitizeAddress, sanitizePincode
 } from '@/lib/security';
 
 /* ─── Razorpay types ─── */
@@ -46,8 +46,6 @@ function loadRazorpayScript(): Promise<boolean> {
     if (window.Razorpay) { resolve(true); return; }
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    script.crossOrigin = 'anonymous';
     script.onload = () => resolve(true);
     script.onerror = () => resolve(false);
     document.body.appendChild(script);
@@ -84,13 +82,12 @@ function CheckoutPage() {
 
   // Pre-select COD if redirected from CheckoutModal
   useEffect(() => {
-    const paymentParam = searchParams.get('payment');
-    if (paymentParam === 'cod' || paymentParam === 'razorpay') {
-      setPaymentMethod(paymentParam);
+    if (searchParams.get('payment') === 'cod') {
+      setPaymentMethod('cod');
     }
   }, [searchParams]);
 
-  const pricing = useMemo(() => calculatePricing(subtotal, paymentMethod), [subtotal, paymentMethod]);
+  const pricing = calculatePricing(subtotal, paymentMethod);
   const isCOD = paymentMethod === 'cod';
 
   const steps = [
@@ -154,8 +151,12 @@ function CheckoutPage() {
     };
   };
 
+  const saveOrderLocally = (order: Order) => {
+    try { localStorage.setItem('sdg_last_order', JSON.stringify(order)); } catch { /* ignore */ }
+  };
   const finalizeOrder = async (order: Order) => {
     await addOrder(order);
+    saveOrderLocally(order);
     clearCart();
     setStep('confirmation');
   };
@@ -195,7 +196,7 @@ function CheckoutPage() {
     setIsLoading(true);
     setPaymentError('');
     try {
-      const receipt = generateSecureId('SDG-');
+      const receipt = 'SDG-' + Date.now().toString(36).toUpperCase();
       setOrderId(receipt);
 
       // Create order in DB first (pending_payment status)
@@ -523,36 +524,25 @@ function CheckoutPage() {
                 </div>
 
                 <div className="border-t pt-4 flex justify-between text-2xl font-bold text-[#1E3A8A]">
-                  <span>Total Amount Due</span>
+                  <span>Grand Total</span>
                   <span className="font-mono">₹{pricing.grandTotal.toLocaleString('en-IN')}</span>
                 </div>
                 {isCOD && (
-                  <div className="mt-4 p-4 bg-orange-50 border-2 border-orange-200 rounded-xl text-sm">
-                    <div className="font-semibold text-orange-800 mb-3">💰 COD Payment Breakdown:</div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="font-medium">1️⃣ Pay Online Now:</span>
-                        <span className="font-bold text-lg text-orange-700">₹{pricing.payNowAmount}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-medium">2️⃣ Pay on Delivery (Cash):</span>
-                        <span className="font-bold text-lg text-orange-700">₹{pricing.payOnDeliveryAmount.toLocaleString('en-IN')}</span>
-                      </div>
-                      <div className="border-t border-orange-300 pt-2 flex justify-between font-bold">
-                        <span>Total to be paid:</span>
-                        <span className="text-lg">₹{pricing.grandTotal.toLocaleString('en-IN')}</span>
-                      </div>
+                  <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-xl text-sm">
+                    <div className="font-semibold text-orange-800 mb-1">Payment Breakdown:</div>
+                    <div className="flex justify-between">
+                      <span>Pay now (online):</span>
+                      <span className="font-semibold">₹{pricing.payNowAmount}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Pay on delivery (cash):</span>
+                      <span className="font-semibold">₹{pricing.payOnDeliveryAmount.toLocaleString('en-IN')}</span>
                     </div>
                   </div>
                 )}
                 {!isCOD && (
-                  <div className="mt-4 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl text-sm">
-                    <div className="font-semibold text-blue-800 mb-2">💳 Direct Online Payment:</div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Pay Full Amount Now:</span>
-                      <span className="font-bold text-lg text-blue-700">₹{pricing.payNowAmount.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div className="text-xs text-green-600 mt-2 font-medium">✓ No extra charges</div>
+                  <div className="text-xs text-green-600 mt-2">
+                    ✓ Free delivery — pay ₹{pricing.payNowAmount.toLocaleString('en-IN')} online
                   </div>
                 )}
               </div>
@@ -576,34 +566,29 @@ function CheckoutPage() {
               </div>
             )}
 
-            {/* Online Payment Card */}
+{/* Online Payment Card */}
             <div
               onClick={() => setPaymentMethod('razorpay')}
               className={`bg-white rounded-3xl shadow-lg border p-8 cursor-pointer transition-all ${paymentMethod === 'razorpay' ? 'border-[#1E3A8A] ring-2 ring-[#1E3A8A]/10' : ''}`}
             >
-              <div className="flex items-center gap-3 mb-2">
-                {/* Radio Button */}
-                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
-                  paymentMethod === 'razorpay' ? 'border-[#1E3A8A] bg-blue-100' : 'border-gray-300 bg-gray-50'
-                }`}>
-                  {paymentMethod === 'razorpay' && <div className="w-3 h-3 rounded-full bg-[#1E3A8A]" />}
-                </div>
+              <div className="flex items-center justify-between mb-4">
                 <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                   <Wallet className="w-7 h-7 text-[#1E3A8A]" />
-                  Pay Online (Full Amount)
+                  UPI / Online Payment
                 </h3>
-              </div>
-              <p className="text-gray-500 text-sm mb-4">UPI, PhonePe, Google Pay, Paytm, Credit/Debit Cards, Netbanking</p>
-              <div className="text-xs text-green-600 mb-6 font-medium">✓ No extra charges • Full payment now</div>
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
-                <div className="text-sm text-blue-900">
-                  <div className="font-semibold">Complete payment required:</div>
-                  <div className="mt-2 flex justify-between">
-                    <span>Pay now:</span>
-                    <span className="font-bold text-lg">₹{pricing.grandTotal.toLocaleString('en-IN')}</span>
-                  </div>
+                {/* Radio Button Selector */}
+                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                  paymentMethod === 'razorpay' 
+                    ? 'border-[#1E3A8A] bg-[#1E3A8A]' 
+                    : 'border-gray-300'
+                }`}>
+                  {paymentMethod === 'razorpay' && (
+                    <CheckCircle className="w-4 h-4 text-white" />
+                  )}
                 </div>
               </div>
+              <p className="text-gray-500 text-sm mb-4">PhonePe, Google Pay, Paytm, Cards, Netbanking</p>
+              <div className="text-xs text-green-600 mb-6 font-medium">✓ No extra charges</div>
               <button
                 onClick={(e) => { e.stopPropagation(); createRazorpayOrder(); }}
                 disabled={isLoading}
@@ -620,46 +605,33 @@ function CheckoutPage() {
               </button>
             </div>
 
-            {/* COD Card */}
+{/* COD Card */}
             <div
               onClick={() => setPaymentMethod('cod')}
               className={`bg-white rounded-3xl shadow-lg border p-8 cursor-pointer transition-all ${paymentMethod === 'cod' ? 'border-green-400 ring-2 ring-green-100' : ''}`}
             >
-              <div className="flex items-center gap-3 mb-2">
-                {/* Radio Button */}
-                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
-                  paymentMethod === 'cod' ? 'border-green-500 bg-green-100' : 'border-gray-300 bg-gray-50'
-                }`}>
-                  {paymentMethod === 'cod' && <div className="w-3 h-3 rounded-full bg-green-500" />}
-                </div>
+              <div className="flex items-center justify-between mb-4">
                 <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                   <Banknote className="w-7 h-7 text-green-600" />
                   Cash on Delivery
                 </h3>
-              </div>
-              <p className="text-gray-600 text-sm mb-4 font-medium">
-                Split payment: Pay ₹{pricing.convenienceFee} now + ₹{pricing.payOnDeliveryAmount.toLocaleString('en-IN')} in cash on delivery
-              </p>
-              <div className="text-xs text-orange-600 mb-4 font-medium">
-                ⚠️ ₹{pricing.convenienceFee} convenience fee applies
-              </div>
-              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl">
-                <div className="text-sm text-green-900">
-                  <div className="font-semibold mb-2">Payment breakdown:</div>
-                  <div className="flex justify-between mb-2">
-                    <span>Step 1 - Pay online now:</span>
-                    <span className="font-bold">₹{pricing.payNowAmount}</span>
-                  </div>
-                  <div className="flex justify-between border-t border-green-300 pt-2">
-                    <span>Step 2 - Pay in cash on delivery:</span>
-                    <span className="font-bold">₹{pricing.payOnDeliveryAmount.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div className="flex justify-between border-t border-green-300 pt-2 font-semibold text-green-800">
-                    <span>Total amount:</span>
-                    <span>₹{pricing.grandTotal.toLocaleString('en-IN')}</span>
-                  </div>
+                {/* Radio Button Selector */}
+                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                  paymentMethod === 'cod' 
+                    ? 'border-green-500 bg-green-500' 
+                    : 'border-gray-300'
+                }`}>
+                  {paymentMethod === 'cod' && (
+                    <CheckCircle className="w-4 h-4 text-white" />
+                  )}
                 </div>
               </div>
+              <div className="text-xs text-orange-600 mb-2 font-medium">
+                ₹{pricing.convenienceFee.toLocaleString('en-IN')} convenience fee applies
+              </div>
+              <p className="text-gray-500 text-sm mb-6">
+                Pay ₹{pricing.payOnDeliveryAmount.toLocaleString('en-IN')} in cash on delivery. Confirm with ₹{pricing.convenienceFee.toLocaleString('en-IN')} online now.
+              </p>
               <button
                 onClick={(e) => { e.stopPropagation(); createRazorpayOrder(); }}
                 disabled={isLoading}
@@ -671,7 +643,7 @@ function CheckoutPage() {
                     Processing...
                   </>
                 ) : (
-                  <>Confirm with ₹{pricing.payNowAmount} Online</>
+                  <>Pay ₹{pricing.payNowAmount.toLocaleString('en-IN')} to Confirm COD</>
                 )}
               </button>
             </div>
@@ -690,21 +662,11 @@ function CheckoutPage() {
             <p className="font-mono text-2xl font-bold text-[#1E3A8A] mb-8">{orderId}</p>
 
             {isCOD && (
-              <div className="bg-orange-50 border-2 border-orange-200 rounded-2xl p-6 mb-8 max-w-md mx-auto">
-                <h3 className="font-bold text-orange-800 mb-4 text-lg">💰 Cash on Delivery</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium">✅ Paid online:</span>
-                    <span className="font-bold text-lg text-orange-700">₹{pricing.payNowAmount}</span>
-                  </div>
-                  <div className="border-t border-orange-300 pt-3 flex justify-between text-sm">
-                    <span className="font-medium">💵 Pay on delivery (cash):</span>
-                    <span className="font-bold text-lg text-orange-700">₹{pricing.payOnDeliveryAmount.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div className="border-t border-orange-300 pt-3 flex justify-between font-bold text-orange-900">
-                    <span>Total to collect:</span>
-                    <span>₹{pricing.grandTotal.toLocaleString('en-IN')}</span>
-                  </div>
+              <div className="bg-green-50 border border-green-200 rounded-2xl p-6 mb-8 max-w-md mx-auto">
+                <h3 className="font-bold text-green-800 mb-3 text-lg">Cash on Delivery</h3>
+                <div className="flex justify-between text-sm">
+                  <span>Amount to pay on delivery (cash):</span>
+                  <span className="font-bold text-green-800">₹{pricing.payOnDeliveryAmount.toLocaleString('en-IN')}</span>
                 </div>
               </div>
             )}

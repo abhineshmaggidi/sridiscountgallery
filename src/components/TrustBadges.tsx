@@ -1,8 +1,6 @@
 'use client';
 
 const badges = [
-  { icon: '🚚', label: 'Free Delivery' },
-  { icon: '🛡️', label: '6 Months Warranty' },
   { icon: '✅', label: 'Genuine Products' },
 ];
 

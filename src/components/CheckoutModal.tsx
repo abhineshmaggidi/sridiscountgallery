@@ -19,8 +19,6 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
   const [address, setAddress] = useState<Address>({ fullName: '', phone: '', street: '', city: '', state: '', pincode: '' });
   const [orderId, setOrderId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('phonepe');
-  const [selectedPaymentType, setSelectedPaymentType] = useState<'upi' | 'cod'>('upi');
-  const [codOption, setCodOption] = useState<'convenience' | 'standard'>('convenience');
   const [orderAddress, setOrderAddress] = useState<Address>({ fullName: '', phone: '', street: '', city: '', state: '', pincode: '' });
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'verifying' | 'done'>('pending');
 
@@ -31,8 +29,6 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
       setPaymentStatus('pending');
       setAddress({ fullName: user?.name || '', phone: user?.phone || '', street: '', city: '', state: '', pincode: '' });
       setPaymentMethod('phonepe');
-      setSelectedPaymentType('upi');
-      setCodOption('convenience');
     }
   }, [isOpen, user]);
 
@@ -127,7 +123,7 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
           {/* PAYMENT */}
           {step === 'payment' && paymentStatus === 'pending' && (
             <div>
-              <h3 className="text-sm md:text-base font-bold text-gray-800 mb-3">Payment Method</h3>
+              <h3 className="text-sm md:text-base font-bold text-gray-800 mb-3">Payment</h3>
               <div className="bg-gray-50 rounded-xl p-3 mb-4 space-y-1.5">
                 {items.map(item => (
                   <div key={item.product.id} className="flex justify-between text-[12px] md:text-sm">
@@ -141,256 +137,45 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                 </div>
               </div>
 
-              {/* Payment Method Selection */}
-              <div className="space-y-3 mb-4">
-                <p className="text-sm font-bold text-gray-700">Choose Payment Method</p>
-
-                {/* UPI Payment Option */}
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedPaymentType('upi')}
-                    className={`w-full p-4 rounded-xl border-2 transition-all duration-200 ${
-                      selectedPaymentType === 'upi'
-                        ? 'border-[#1E3A8A] bg-blue-50 shadow-md ring-2 ring-blue-200'
-                        : 'border-gray-200 bg-white hover:border-[#1E3A8A] hover:bg-blue-25'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      {/* Large Selection Circle */}
-                      <div className="relative">
-                        <div className={`w-8 h-8 rounded-full border-3 flex items-center justify-center transition-all duration-200 ${
-                          selectedPaymentType === 'upi'
-                            ? 'border-[#1E3A8A] bg-blue-100'
-                            : 'border-gray-300 bg-gray-50 hover:border-[#1E3A8A]'
-                        }`}>
-                          {selectedPaymentType === 'upi' && (
-                            <div className="w-5 h-5 rounded-full bg-[#1E3A8A] flex items-center justify-center">
-                              <div className="w-2 h-2 rounded-full bg-white"></div>
-                            </div>
-                          )}
-                        </div>
-                        {/* Animated ring when selected */}
-                        {selectedPaymentType === 'upi' && (
-                          <div className="absolute inset-0 w-8 h-8 rounded-full border-2 border-[#1E3A8A] animate-ping opacity-20"></div>
-                        )}
-                      </div>
-
-                      <div className="flex-1 text-left">
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="font-bold text-gray-900 text-base">💳 Pay Online (UPI)</div>
-                          {selectedPaymentType === 'upi' && (
-                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Selected</span>
-                          )}
-                        </div>
-                        <div className="text-sm text-gray-600 mb-2">
-                          PhonePe, Google Pay, Paytm, Credit/Debit Cards, Netbanking
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="text-sm text-green-600 font-semibold">✓ No extra charges</div>
-                          <div className="text-xs text-gray-500">• Instant payment</div>
-                        </div>
-                      </div>
-
-                      <div className="text-right">
-                        <div className="text-xs text-gray-500 mb-1">Pay now:</div>
-                        <div className="font-mono font-bold text-[#1E3A8A] text-lg">₹{grandTotal.toLocaleString('en-IN')}</div>
-                        <div className="text-xs text-gray-500 mt-1">Full amount</div>
-                      </div>
-                    </div>
-                  </button>
-
-                  {/* Selection indicator */}
-                  {selectedPaymentType === 'upi' && (
-                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-[#1E3A8A] rounded-full flex items-center justify-center shadow-lg">
-                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-
-                {/* COD Payment Option */}
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedPaymentType('cod')}
-                    className={`w-full p-4 rounded-xl border-2 transition-all duration-200 ${
-                      selectedPaymentType === 'cod'
-                        ? 'border-green-500 bg-green-50 shadow-md ring-2 ring-green-200'
-                        : 'border-gray-200 bg-white hover:border-green-300 hover:bg-green-25'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      {/* Large Selection Circle */}
-                      <div className="relative">
-                        <div className={`w-8 h-8 rounded-full border-3 flex items-center justify-center transition-all duration-200 ${
-                          selectedPaymentType === 'cod'
-                            ? 'border-green-500 bg-green-100'
-                            : 'border-gray-300 bg-gray-50 hover:border-green-400'
-                        }`}>
-                          {selectedPaymentType === 'cod' && (
-                            <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
-                              <div className="w-2 h-2 rounded-full bg-white"></div>
-                            </div>
-                          )}
-                        </div>
-                        {/* Animated ring when selected */}
-                        {selectedPaymentType === 'cod' && (
-                          <div className="absolute inset-0 w-8 h-8 rounded-full border-2 border-green-400 animate-ping opacity-20"></div>
-                        )}
-                      </div>
-
-                      <div className="flex-1 text-left">
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="font-bold text-gray-900 text-base">💵 Cash on Delivery</div>
-                          {selectedPaymentType === 'cod' && (
-                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Selected</span>
-                          )}
-                        </div>
-                        <div className="text-sm text-gray-600 mb-2">
-                          Choose from convenience fee or standard COD options
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="text-sm text-orange-600 font-semibold">⚠️ ₹99 convenience fee available</div>
-                          <div className="text-xs text-gray-500">• Multiple options</div>
-                        </div>
-                      </div>
-
-                      <div className="text-right">
-                        <div className="text-xs text-gray-500 mb-1">Pay now:</div>
-                        <div className="font-mono font-bold text-green-600 text-lg">₹99</div>
-                        <div className="text-xs text-gray-500 mt-1">Total: ₹{grandTotal.toLocaleString('en-IN')}</div>
-                      </div>
-                    </div>
-                  </button>
-
-                  {/* Selection indicator */}
-                  {selectedPaymentType === 'cod' && (
-                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
-                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
+              <p className="text-sm font-bold text-gray-700 mb-2">Pay with UPI</p>
+              <div className="grid grid-cols-2 gap-2.5 mb-3">
+                <button type="button" onClick={() => handlePayWithApp('phonepe')}
+                  className="flex flex-col items-center gap-2 p-3 md:p-4 rounded-xl border-2 border-purple-200 bg-purple-50 active:bg-purple-100">
+                  <div className="w-10 h-10 rounded-lg bg-purple-600 flex items-center justify-center shadow"><Smartphone className="w-5 h-5 text-white" /></div>
+                  <span className="text-[12px] md:text-sm font-bold text-purple-700">PhonePe</span>
+                  <span className="text-[10px] text-purple-500 font-mono font-bold">₹{grandTotal.toLocaleString('en-IN')}</span>
+                </button>
+                <button type="button" onClick={() => handlePayWithApp('gpay')}
+                  className="flex flex-col items-center gap-2 p-3 md:p-4 rounded-xl border-2 border-blue-200 bg-blue-50 active:bg-blue-100">
+                  <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center shadow">
+                    <span className="text-base font-black"><span className="text-blue-500">G</span><span className="text-red-500">P</span><span className="text-yellow-500">a</span><span className="text-green-500">y</span></span>
+                  </div>
+                  <span className="text-[12px] md:text-sm font-bold text-blue-700">Google Pay</span>
+                  <span className="text-[10px] text-blue-500 font-mono font-bold">₹{grandTotal.toLocaleString('en-IN')}</span>
+                </button>
               </div>
 
-              {/* UPI Payment Options */}
-              {selectedPaymentType === 'upi' && (
-                <>
-                  <p className="text-sm font-bold text-gray-700 mb-2">Pay with UPI</p>
-                  <div className="grid grid-cols-2 gap-2.5 mb-3">
-                    <button type="button" onClick={() => handlePayWithApp('phonepe')}
-                      className="flex flex-col items-center gap-2 p-3 md:p-4 rounded-xl border-2 border-purple-200 bg-purple-50 active:bg-purple-100">
-                      <div className="w-10 h-10 rounded-lg bg-purple-600 flex items-center justify-center shadow"><Smartphone className="w-5 h-5 text-white" /></div>
-                      <span className="text-[12px] md:text-sm font-bold text-purple-700">PhonePe</span>
-                      <span className="text-[10px] text-purple-500 font-mono font-bold">₹{grandTotal.toLocaleString('en-IN')}</span>
-                    </button>
-                    <button type="button" onClick={() => handlePayWithApp('gpay')}
-                      className="flex flex-col items-center gap-2 p-3 md:p-4 rounded-xl border-2 border-blue-200 bg-blue-50 active:bg-blue-100">
-                      <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center shadow">
-                        <span className="text-base font-black"><span className="text-blue-500">G</span><span className="text-red-500">P</span><span className="text-yellow-500">a</span><span className="text-green-500">y</span></span>
-                      </div>
-                      <span className="text-[12px] md:text-sm font-bold text-blue-700">Google Pay</span>
-                      <span className="text-[10px] text-blue-500 font-mono font-bold">₹{grandTotal.toLocaleString('en-IN')}</span>
-                    </button>
-                  </div>
+              <button type="button" onClick={() => handlePayWithApp('upi')} className="w-full p-2.5 rounded-xl border border-gray-200 text-[13px] font-medium text-gray-600 mb-3 active:bg-gray-50">
+                Pay with any UPI app
+              </button>
 
-                  <button type="button" onClick={() => handlePayWithApp('upi')} className="w-full p-2.5 rounded-xl border border-gray-200 text-[13px] font-medium text-gray-600 mb-3 active:bg-gray-50">
-                    Pay with any UPI app
-                  </button>
-                </>
-              )}
+              <div className="flex items-center gap-3 my-3"><div className="flex-1 h-px bg-gray-200" /><span className="text-[11px] text-gray-400">OR</span><div className="flex-1 h-px bg-gray-200" /></div>
 
-              {/* COD Payment Options */}
-              {selectedPaymentType === 'cod' && (
-                <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl">
-                  <p className="text-sm font-bold text-gray-700 mb-3">Choose COD Payment Option</p>
-
-                  {/* COD Convenience Fee Option */}
-                  <div className="mb-3">
-                    <button
-                      type="button"
-                      onClick={() => setCodOption('convenience')}
-                      className="w-full p-3 rounded-lg border-2 transition-all duration-200 flex items-center gap-3 text-left"
-                      style={{
-                        borderColor: codOption === 'convenience' ? '#10B981' : '#E5E7EB',
-                        backgroundColor: codOption === 'convenience' ? '#ECFDF5' : 'white'
-                      }}
-                    >
-                      {/* Radio Button Circle */}
-                      <div className="relative flex-shrink-0">
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
-                          codOption === 'convenience' ? 'border-green-500' : 'border-gray-300'
-                        }`}>
-                          {codOption === 'convenience' && (
-                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex-1">
-                        <div className="font-semibold text-gray-900 text-sm">💰 Convenience Fee Option</div>
-                        <div className="text-xs text-gray-600 mt-1">
-                          Pay ₹99 online now + ₹{(grandTotal - 99).toLocaleString('en-IN')} in cash on delivery
-                        </div>
-                        <div className="text-xs text-orange-600 font-medium mt-1">⚠️ ₹99 convenience fee applies</div>
-                      </div>
-
-                      <div className="text-right flex-shrink-0">
-                        <div className="text-xs text-gray-500">Pay now:</div>
-                        <div className="font-mono font-bold text-green-600">₹99</div>
-                      </div>
-                    </button>
-                  </div>
-
-                  {/* COD Standard Option */}
-                  <div className="mb-3">
-                    <button
-                      type="button"
-                      onClick={() => setCodOption('standard')}
-                      className="w-full p-3 rounded-lg border-2 transition-all duration-200 flex items-center gap-3 text-left"
-                      style={{
-                        borderColor: codOption === 'standard' ? '#10B981' : '#E5E7EB',
-                        backgroundColor: codOption === 'standard' ? '#ECFDF5' : 'white'
-                      }}
-                    >
-                      {/* Radio Button Circle */}
-                      <div className="relative flex-shrink-0">
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
-                          codOption === 'standard' ? 'border-green-500' : 'border-gray-300'
-                        }`}>
-                          {codOption === 'standard' && (
-                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex-1">
-                        <div className="font-semibold text-gray-900 text-sm">💵 Standard COD</div>
-                        <div className="text-xs text-gray-600 mt-1">
-                          Pay full amount ₹{grandTotal.toLocaleString('en-IN')} in cash on delivery
-                        </div>
-                        <div className="text-xs text-green-600 font-medium mt-1">✓ No online payment required</div>
-                      </div>
-
-                      <div className="text-right flex-shrink-0">
-                        <div className="text-xs text-gray-500">Pay now:</div>
-                        <div className="font-mono font-bold text-green-600">₹0</div>
-                      </div>
-                    </button>
-                  </div>
+<div className="flex items-center gap-3">
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                  paymentMethod === 'cod' 
+                    ? 'border-green-500 bg-green-500' 
+                    : 'border-gray-300'
+                }`}>
+                  {paymentMethod === 'cod' && (
+                    <CheckCircle className="w-3 h-3 text-white" />
+                  )}
                 </div>
-              )}
-
-              {/* COD Payment Action */}
-              {selectedPaymentType === 'cod' && (
-                <button type="button" onClick={() => router.push(`/checkout?payment=cod&option=${codOption}`)}
-                  className="w-full py-4 rounded-xl bg-gradient-to-r from-green-500 to-green-600 text-white font-bold text-[14px] flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all">
-                  💵 Proceed with {codOption === 'convenience' ? 'Convenience Fee' : 'Standard'} COD
+                <button type="button" onClick={() => router.push('/checkout?payment=cod')}
+                  className="flex-1 py-3 rounded-xl border-2 border-green-200 bg-green-50 text-green-700 font-bold text-[14px] active:bg-green-100">
+                  💵 Cash on Delivery — ₹99 convenience fee
                 </button>
-              )}
+              </div>
 
               <button type="button" onClick={() => setStep('address')} className="w-full mt-3 py-2.5 rounded-xl border border-gray-200 text-gray-500 text-sm flex items-center justify-center gap-2">
                 <ArrowLeft className="w-4 h-4" /> Back
