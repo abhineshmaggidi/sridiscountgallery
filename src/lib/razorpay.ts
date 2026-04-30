@@ -24,13 +24,16 @@ declare global {
 let razorpayInstance: Razorpay | null = null;
 
 export function getRazorpay() {
+  const keyId = process.env.RAZORPAY_KEY_ID || 'rzp_live_SgAwPk5xCJ5iCE';
+  const keySecret = process.env.RAZORPAY_KEY_SECRET || 'Iy4F0gZ0s9rXs2TcSk6He2Fe';
+
   if (!razorpayInstance) {
-    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    if (!keyId || !keySecret) {
       throw new Error('RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET must be set in .env.local');
     }
     razorpayInstance = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID,
-      key_secret: process.env.RAZORPAY_KEY_SECRET,
+      key_id: keyId,
+      key_secret: keySecret,
     });
   }
   return razorpayInstance;
@@ -76,7 +79,8 @@ export function verifySignature(
   payload: string,
   signature: string
 ): boolean {
-  const expectedSignature = createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
+  const keySecret = process.env.RAZORPAY_KEY_SECRET || 'Iy4F0gZ0s9rXs2TcSk6He2Fe';
+  const expectedSignature = createHmac('sha256', keySecret)
     .update(payload)
     .digest('hex');
   return signature === expectedSignature;

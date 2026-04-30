@@ -83,19 +83,7 @@ export async function POST(request: NextRequest) {
       hasNextPublicKeyId: !!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
     });
 
-    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-      return NextResponse.json(
-        { error: 'Razorpay credentials missing on server. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env.local and restart the dev server.' },
-        { status: 500 }
-      );
-    }
-
-    if (!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID) {
-      return NextResponse.json(
-        { error: 'Razorpay public key missing. Add NEXT_PUBLIC_RAZORPAY_KEY_ID to .env.local and restart the dev server.' },
-        { status: 500 }
-      );
-    }
+    const publicKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_live_SgAwPk5xCJ5iCE';
 
     // Create Razorpay order (amount is already in rupees; lib converts to paise)
     const razorpayOrder = await createRazorpayOrder(amount, 'INR', receipt);
@@ -112,7 +100,7 @@ export async function POST(request: NextRequest) {
       orderId: razorpayOrder.id,
       amount: razorpayOrder.amount,
       currency: razorpayOrder.currency,
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      key: publicKey,
       name: 'Sri Discount Gallery',
       description: `Order #${receipt}`,
       prefill: {
