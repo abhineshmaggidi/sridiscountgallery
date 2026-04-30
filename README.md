@@ -1,4 +1,29 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sri Discount Gallery 🛍️
+
+An advanced e-commerce platform for electronics and gadgets built with Next.js, TypeScript, and Tailwind CSS.
+
+## ✨ New Features (Latest Update)
+
+### Customer Support Chat Widget
+- Real-time chat interface for customer support
+- Fixed position chat button
+- Message history tracking
+- Auto-response system
+- Contact information display (9259595943)
+
+### Product Comparison Tool
+- Compare multiple products side-by-side
+- Automatic spec difference detection
+- Best value calculation based on price/rating
+- Price difference percentage calculator
+
+## 🚀 Tech Stack
+
+- **Framework:** Next.js 14+ with App Router
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS
+- **Database:** Supabase
+- **Payment:** UPI Direct (PhonePe, Google Pay)
 
 ## Getting Started
 
